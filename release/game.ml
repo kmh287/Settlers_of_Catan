@@ -84,6 +84,9 @@ let init_game () = game_of_state (gen_initial_state())
 None of these handle any specific move type, but rather make calculations
 easier within the functions*) 
 
+let countSettlements () = 
+	list_count (fun ele -> if ele = None then false else true) g.gInterList
+
 (*Function to return a new list with index i 
 replaced with element e with initial list l*)
 let updateList i e l = 
@@ -91,24 +94,33 @@ let updateList i e l =
 		if index = i then e 
 		else listelement) l 
 
+(*Helper function to check if pt && points adjacent to pt are unsettled*)
+let suitableSettlementPoint pt = 
+	(*Return true if all points in the adjacency list are unsettled*)
+	List.nth gInterList = None && 
+	(List.for_all (fun ele -> List.nth g.gInterList ele = None) 
+					adjacent_points pt) in 
+
 (*Function to search for a point that 
 does not have have a settle men nor
 adjacent settlements*)
-let settleablePoint () = 
+let settleablePoint () : point= 
 
-	(*Helper function to check if pt && points adjacent to pt are unsettled*)
-	let suitableSettlementPoint pt = 
-		(*Return true if all points in the adjacency list are unsettled*)
-		List.nth gInterList = None && 
-		(List.for_all (fun ele -> List.nth g.gInterList ele = None) 
-						adjacent_points pt) in 
-		
 	(*Find index of first element that is settleable in interlist*)
 	list_indexof suitableSettlementPoint g.gInterList
 
+(*Helper function to check if road is already built*)
+let suitableRoad road = 
+	(*Return false if road is already built*)
+	not( List.mem road g.gRoadList) 
 
-let handle_move s m =
-	let g = game_of_state s in 
+(*Function to search for a buildable road adjacent to pt *)
+let buildableRoad pt : road = 
+
+	let possibleRoads = List.map (fun ele -> (pt,ele) ) (adjacent_points pt) in
+	list_indexof suitableRoad possibleRoads
+
+let handle_move g m =
 	match m with 
 		|InitialMove( (pt1, pt2) ) -> 
 				state_of_game (handle_InitialMove g pt1 pt2)  
@@ -120,11 +132,9 @@ let handle_move s m =
 				state_of_game (handle_TradeResponse g response)
 
 		(*This final case MAY require its own function to match the action*)
+		(*MAYBE we should match on the action here*)
 		|Action(action) ->
 				state_of_game (handle_Action g action)
-
-
-
 
 (*************helper functions for each case of handle_move.**********
 ****************They are divided into each case***********************
@@ -135,7 +145,7 @@ let handle_move s m =
 let handle_InitialMove g pt1 pt2 = 
 	(*If nextRequest is initial move, then handle appropriately*)
 	if g.gNextRequest = InitialMove then begin 
-		g with gRoadList 	= (g.gActive,(pt1,pt2))::gRoadList;
+		g with gRoadList 	= (g.gActive,(pt1,pt2))::g.gRoadList;
 	       gInterList 	=  updateList pt1 (g.gActive,Town) (g.gInterList)
 	       gNextColor	= (*How do we advance this, do not know to go
 	       					in forward or reverse order*)
@@ -146,13 +156,17 @@ let handle_InitialMove g pt1 pt2 =
 	  (*If nextRequest is not an initial move, then enter a minimal 
 	  move. This move will find the first unoccupied point and settle it*)
 	else begin 
-		let unoccupiedPt = list_indexof (fun ele ->
-										if ele = None then true else false)
-										g.gInterList in 
-		let unoccupiedRoad = list_indexof (*Fill in later*)								
-		g with gRoadList 	= 
-			   gInterList 	= updateList unoccupiedPt (g.gActive,Town) (g.gInterList)
-			   gNextColor	= (*See above*)
+		let unoccupiedPt 	= settleablePoint () in 
+		let unoccupiedRoad	= buildableRoad unoccupiedPt 					
+		g with gRoadList 	= (g.gActive,unoccupiedRoad)::g.gRoadList
+
+			   gInterList 	= updateList unoccupiedPt 
+			   								(g.gActive,Town) 
+			   								(g.gInterList)
+
+			   gNextColor	= if countSettlements () <= 4
+			   				  then next_turn g.gActive 
+
 			   gNextRequest	= (*See above*)
 			end 
 
