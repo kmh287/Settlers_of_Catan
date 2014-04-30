@@ -133,15 +133,15 @@ let addCosts cost1 cost2 = map_cost2 (+) cost1 cost2
 (*Resource updater FOR INIT PHASE*)
 let initUpdateResources g color : player = 
 	(*Find the index of the player in the player list*)
-	let index = list_indexof (fun ele -> fst(ele) = color) in 
-	(*Map over the list, turn all points that don't belong to color to None*)
+	let index = list_indexof (fun ele -> fst(ele) = color) g.gInterList in 
+	(*Map over the list, turn all points that don't belong to color to -1*)
 	let indexList = List.mapi (fun index ele -> if fst(ele) = color 
 											   then index 
 											   else -1) in 
-	(*Map over index list, return a list with only the indicies and no None*)
-	let indexList = List.fold_left (fun acc ele -> if ele <> -1
+	(*Map over index list, return a list with only the indicies and no -1*)
+	let cleanedIndexList = List.fold_left (fun acc ele -> if ele <> -1
 												   then ele::acc
-												   else acc) [] g.gInterList in
+												   else acc) [] indexList in
 	(*Find all pieces adjacent to the indices in indexList*)
 	let pieceList = List.flatten (List.map (fun ele ->
 										 adjacent_pieces ele) indexList) in
@@ -165,7 +165,7 @@ let initUpdateResources g color : player =
 	let totalNewResources = resourceGatherer terrainList (0,0,0,0,0) in 
 
 	(*Deconstruct player list, then build it again with new resources added*)
-	match List.nth g.gPlayerList index with 
+	match (List.nth g.gPlayerList index) with 
 		|(col,hand,t) -> match hand with
 			(*Return a player with the proper resources added*)
 			|(inv,cds) -> (col,(addCosts inv totalNewResources,cds),t) 
