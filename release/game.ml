@@ -38,52 +38,79 @@ type game = {
     gNextRequest            : request;
 }
 
-let state_of_game g =     
-		(
+let player_of_gPlayer (gp:gPlayer) : player = 
+  (gp.gPColor, (gp.gPInventory, gp.gPCard), gp.gPTrophies)
+
+let gPlayer_of_player (p:player) : gPlayer = 
+  match p with
+  | (color, (inventory, cards), trophies) ->
+    {
+      gPColor = color;
+      gPInventory = inventory;
+      gPCard = cards;
+      gPTrophies = trophies;
+    }
+
+let state_of_game (g:game) : state =     
+	(
 		(*Board*)
-		(g.gHexList,g.gPortList,g.gInterList,g.gRoadList,g.gDeck,
-		g.gDiscard, g.gRobber),
+		(
+      (g.gHexList,g.gPortList),
+      (g.gInterList,g.gRoadList),
+      g.gDeck,
+		  g.gDiscard, 
+      g.gRobber
+    ),
 
 		(*Player List*)
-		gPlayerList,
+		(List.map player_of_gPlayer g.gPlayerList),
 
 		(*Turn *)
-		(g.gActive,g.gDiceRolled,g.gCardPlayed,g.gCardsBought
-		g.gTradesMade, g.gPendingTrade),
+		{
+      active         = g.gActive;
+      dicerolled     = g.gDiceRolled;
+      cardplayed     = g.gCardPlayed;
+      cardsbought    = g.gCardsBought;
+		  tradesmade     = g.gTradesMade;
+      pendingtrade   = g.gPendingTrade;
+    },
 
 		(*Next*) 
-		(g.gNextColor, g.gNextRequest)
-		)              
+		( 
+      g.gNextColor, 
+      g.gNextRequest
+    )
+	)            
 
-let game_of_state s = match s with 
-	|((hl,pl,il,rl,dk,dc,rb),playerList,(a,dr,cp,cb,tm,pt),(nc,nr))->
-		
+let game_of_state (s:state) : game = 
+  match s with 
+	|(((hl,pl),(il,rl),dk,dc,rb),playerList,tn,(nc,nr))->
+  	
 		(*Board*)
-		{gHexList 	= hl;
-		 gPortList 	= pl;
-		 gInterList = il;
-		 gRoadList 	= rl;
-		 gDeck 		= dk;
-		 gDiscard 	= dc; 
-		 gRobber 	= rb; 
-
-		 (*Player List*)
-		 gPlayerList = playerList;
-
-		 (*Turn*)
-		 gActive = a;
-		 gDiceRolled = dr;
-		 gCardPlayed = cp;
-		 gCardsBought = cb;
-		 gTradesMade = tm;
-		 gPendingTrade = pt;
-
-		 (*Next*)
-		 gNextColor = nc;
-		 gNextRequest = nr;
-		 }
-	|_ -> failwith "Implementation fault"
-
+		{
+      gHexList 	= hl;
+		  gPortList 	= pl;
+		  gInterList = il;
+		  gRoadList 	= rl;
+		  gDeck 		= dk;
+		  gDiscard 	= dc; 
+		  gRobber 	= rb; 
+ 
+		  (*Player List*)
+		  gPlayerList = (List.map gPlayer_of_player playerList);
+ 
+		  (*Turn*)
+		  gActive = tn.active;
+		  gDiceRolled = tn.dicerolled;
+		  gCardPlayed = tn.cardplayed;
+		  gCardsBought = tn.cardsbought;
+		  gTradesMade = tn.tradesmade;
+		  gPendingTrade = tn.pendingtrade;
+ 
+		  (*Next*)
+		  gNextColor = nc;
+		  gNextRequest = nr;
+		}
 
 
 let init_game () = game_of_state (gen_initial_state())
