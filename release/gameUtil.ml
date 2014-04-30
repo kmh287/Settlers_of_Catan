@@ -2,44 +2,6 @@
 (******                {general helper functions}                ******)
 (**********************************************************************)
 
-
-
-(**********************************************************************)
-(******              {initial_move helper functions}             ******)
-(**********************************************************************)
-
-
-
-(**********************************************************************)
-(******               {robber_move helper functions}             ******)
-(**********************************************************************)
-
-
-
-(**********************************************************************)
-(******                {discard helper functions}                ******)
-(**********************************************************************)
-
-
-
-(**********************************************************************)
-(******              {trade response helper functions}           ******)
-(**********************************************************************)
-
-
-
-(**********************************************************************)
-(******                {action helper functions}                 ******)
-(**********************************************************************)
-
-
-(*Below are the helper functions for the various pieces of handle_move
-None of these handle any specific move type, but rather make calculations
-easier within the functions*) 
-
-let countSettlements g = 
-    list_count (fun ele -> if ele = None then false else true) g.gInterList
-
 (*Function to return a new list with index i 
 replaced with element e with initial list l*)
 let updateList i e l = 
@@ -54,9 +16,8 @@ let suitableSettlementPoint g pt =
     (List.for_all (fun ele -> List.nth g.gInterList ele = None) 
                     adjacent_points pt) in 
 
-(*Function to search for a point that 
-does not have have a settle men nor
-adjacent settlements*)
+(*Function to search for a point that does not have 
+have a settlement nor adjacent settlements*)
 let settleablePoint g : point= 
 
     (*Find index of first element that is settleable in interlist*)
@@ -74,6 +35,40 @@ let buildableRoad g pt : road =
 
 
 let addCosts cost1 cost2 = map_cost2 (+) cost1 cost2 
+
+
+(* update game with a new player status *)
+let updatePlayer game player = 
+  let target = player.gPColor in
+  let pList = game.gPlayerList in
+  let newPList = List.map 
+    (fun p -> if(p.gPColor = target) then player else p) pList in
+  {game with gPlayerList = newPList}
+
+(* find the player from game with specific color *)
+let findPlayer game color = 
+  let pList = game.gPlayerList in
+  List.find (fun p -> p.gPColor = color) pList
+
+(* add new resource to original invetory *)
+let addInv newRes origRes : cost = 
+  map_cost2 (fun n o -> n + o) newRes origRes
+
+(* multiply res according to different type of settlement *)
+let multiRes mul res : cost = 
+  map_cost (fun r -> mul * r) res
+
+(**********************************************************************)
+(******              {initial_move helper functions}             ******)
+(**********************************************************************)
+
+(*Below are the helper functions for the various pieces of handle_move
+None of these handle any specific move type, but rather make calculations
+easier within the functions*) 
+
+let countSettlements g = 
+    list_count (fun ele -> if ele = None then false else true) g.gInterList
+
 
 (*Resource updater FOR INIT PHASE*)
 let initUpdateResources g color : player = 
@@ -117,136 +112,28 @@ let initUpdateResources g color : player =
 
 
 
-(*************helper functions for each case of handle_move.**********
-****************They are divided into each case***********************
-*****Each function here will take a game and relevent parameters******
-*****and return a game. The conversion to state will happen in *******
-**************************handle_move*********************************)
-
-let handle_InitialMove g pt1 pt2 = 
-  (*If nextRequest is initial move, then handle appropriately*)
-  if g.gNextRequest = InitialMove then begin 
-    (*Num settlements INCLUDING one about to be placed*)
-    let settlementNum = countSettlements g +1 in    
-    (*Point to use if pt1 is an invalid settle spot*)
-    let settlePoint = settleablePoint g  in
-
-    (*Return updated record*)
-       g with gInterList  = (*Check if provided pt1 is valid to settle*)
-                     if suitableSettlementPoint g pt1 
-                     then updateList pt1 (g.gActive,Town) (g.gInterList)
-                     else updateList ( settlePoint ) 
-                              (g.gActive,Town) 
-                              (g.gInterList);
-
-                     (*Check if provided pt1 is valid to settle
-                     if it isn't, then the road is invalid too*)
-          gRoadList   = if suitableSettlementPoint g pt1 
-                then (g.gActive,(pt1,pt2))::g.gRoadList;
-                else (g.gActive,(settlePoint,
-                      (buildableRoad g settlePoint)::g.gRoadList;
-
-            gPlayerList = (*Only add resources after fifth settlement 
-                     is placed*)
-                    if settlemenNum <= 4 
-                    then g.gPlayerList
-                    else updateList 
-                      (*Index*)
-                      list_indexof (fun ele -> fst(ele) = g.gActive)
-                      (*Updated value*)
-                      initUpdateResources g (g.gActive)
-                      (*List*)
-                      g.gPlayerList; 
-
-            gNextColor  = (*Travel forward during first half of iniital phase
-                  and at the very end *)
-                  if (settlemenNum < 4 || settlementNum >= 8)
-                  then next_turn g.gActive 
-                  (*If already four settlements, go in reverse*)
-                  else prev_turn g.gActive;  
-
-          gActive   = (*Travel forward during first half of iniital phase
-                  and at the very end *)
-                  if (settlemenNum < 4 || settlementNum >= 8)
-                  then next_turn g.gActive 
-                  (*If already four settlements, go in reverse*)
-                  else prev_turn g.gActive;  
-
-          gNextRequest= if settlementNum >= 8 
-                  then ActionRequest
-                  (*If fewer than 8 settlements, then still init
-                  phase*)
-                  else InitialRequest
-    end 
-
-    (*If nextRequest is not an initial move, then enter a minimal 
-    move. This move will find the first unoccupied point and settle it*)
-  else begin 
-    let unoccupiedPt  = settleablePoint () in 
-    let unoccupiedRoad  = buildableRoad unoccupiedPt    
-    let settlementNum = countSettlements ()+1 in    
-
-    (*Return updated record*)
-    g with  gInterList  = updateList unoccupiedPt 
-                        (g.gActive,Town) 
-                        (g.gInterList);
-
-        gRoadList   = (g.gActive,unoccupiedRoad)::g.gRoadList;
-
-            gPlayerList = (*Only add resources after fifth settlement 
-                     is placed*)
-                    if settlemenNum <= 4 
-                    then g.gPlayerList
-                    else updateList 
-                      (*Index*)
-                      list_indexof (fun ele -> fst(ele) = g.gActive)
-                      (*Updated value*)
-                      initUpdateResources (g.gActive)
-                      (*List*)
-                      g.gPlayerList; 
-
-         gNextColor = (*Travel forward during first half of iniital phase
-                  and at the very end *)
-                  if (settlemenNum < 4 || settlementNum >= 8)
-                  then next_turn g.gActive 
-                  (*If already four settlements, go in reverse*)
-                  else prev_turn g.gActive;  
-
-         gActive    = (*Travel forward during first half of iniital phase
-                  and at the very end *)
-                  if (settlemenNum < 4 || settlementNum >= 8)
-                  then next_turn g.gActive 
-                  (*If already four settlements, go in reverse*)
-                  else prev_turn g.gActive;  
-
-         gNextRequest = if settlementNum >= 8 
-                  then ActionRequest
-                  (*If fewer than 8 settlements, then still init
-                  phase*)
-                  else InitialRequest
-      end 
+(**********************************************************************)
+(******               {robber_move helper functions}             ******)
+(**********************************************************************)
 
 
-(* update game with a new player status *)
-let updatePlayer game player = 
-  let target = player.gPColor in
-  let pList = game.gPlayerList in
-  let newPList = List.map 
-    (fun p -> if(p.gPColor = target) then player else p) pList in
-  {game with gPlayerList = newPList}
 
-(* find the player from game with specific color *)
-let findPlayer game color = 
-  let pList = game.gPlayerList in
-  List.find (fun p -> p.gPColor = color) pList
+(**********************************************************************)
+(******                {discard helper functions}                ******)
+(**********************************************************************)
 
-(* add new resource to original invetory *)
-let addInv newRes origRes : cost = 
-  map_cost2 (fun n o -> n + o) newRes origRes
 
-(* multiply res according to different type of settlement *)
-let multiRes mul res : cost = 
-  map_cost (fun r -> mul * r) res
+
+(**********************************************************************)
+(******              {trade response helper functions}           ******)
+(**********************************************************************)
+
+
+
+(**********************************************************************)
+(******                {action helper functions}                 ******)
+(**********************************************************************)
+
 
 (* generate sources to all players and update game status *)
 let generateResource (g : game) : game = 
