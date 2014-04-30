@@ -84,7 +84,7 @@ let init_game () = game_of_state (gen_initial_state())
 None of these handle any specific move type, but rather make calculations
 easier within the functions*) 
 
-let countSettlements () = 
+let countSettlements g = 
 	list_count (fun ele -> if ele = None then false else true) g.gInterList
 
 (*Function to return a new list with index i 
@@ -95,7 +95,7 @@ let updateList i e l =
 		else listelement) l 
 
 (*Helper function to check if pt && points adjacent to pt are unsettled*)
-let suitableSettlementPoint pt = 
+let suitableSettlementPoint g pt = 
 	(*Return true if all points in the adjacency list are unsettled*)
 	List.nth gInterList = None && 
 	(List.for_all (fun ele -> List.nth g.gInterList ele = None) 
@@ -104,21 +104,62 @@ let suitableSettlementPoint pt =
 (*Function to search for a point that 
 does not have have a settle men nor
 adjacent settlements*)
-let settleablePoint () : point= 
+let settleablePoint g : point= 
 
 	(*Find index of first element that is settleable in interlist*)
 	list_indexof suitableSettlementPoint g.gInterList
 
 (*Helper function to check if road is already built*)
-let suitableRoad road = 
+let suitableRoad g road = 
 	(*Return false if road is already built*)
 	not( List.mem road g.gRoadList) 
 
 (*Function to return a buildable road adjacent to pt *)
-let buildableRoad pt : road = 
-
+let buildableRoad g pt : road = 
 	let possibleRoads = List.map (fun ele -> (pt,ele) ) (adjacent_points pt) in
 	list_indexof suitableRoad possibleRoads
+
+let addCosts cost1 cost2 = map_cost2 (+) cost1 cost2 
+
+(*Resource updater FOR INIT PHASE*)
+let initUpdateResources g color : player = 
+	(*Find the index of the player in the player list*)
+	let index = list_indexof (fun ele -> fst(ele) = color) in 
+	(*Map over the list, turn all points that don't belong to color to None*)
+	let indexList = List.mapi (fun index ele -> if fst(ele) = color 
+											   then index 
+											   else -1) in 
+	(*Map over index list, return a list with only the indicies and no None*)
+	let indexList = List.fold_left (fun acc ele -> if ele <> -1
+												   then ele::acc
+												   else acc) [] g.gInterList in
+	(*Find all pieces adjacent to the indices in indexList*)
+	let pieceList = List.flatten (List.map (fun ele ->
+										 adjacent_pieces ele) indexList) in
+	(*Lookup piece numbers in hex list, and build list of terrain types*)
+	let terrainList = List.map (fun ele -> 
+									fst(List.nth g.gHexList ele)) pieceList in 
+	let rec resourceGatherer (tlist:terain list) (acc:cost) : cost = 
+		match tlist with 
+			|[] -> acc
+			|hd::tl -> let rsource = resource_of_terrain hd  in 
+					   if rsource = None 
+					   (*No resource, then move down the list *)
+					   then resourceGatherer tl acc
+					   (*If there is a resource, add the cost to the acc*)
+					   else let resourceTotal =
+					   	 map_cost (fun ele -> ele * cRESOURCES_GENERATED_TOWN)
+					   	 		  single_resource_cost rsource in  
+					   (*Call again on tail, with acc + new resources*)
+					   resourceGatherer tl 
+					   				addCosts acc resourceTotal  in 
+	let totalNewResources = resourceGatherer terrainList (0,0,0,0,0) in 
+
+	(*Deconstruct player list, then build it again with new resources added*)
+	match List.nth g.gPlayerList index with 
+		|(col,hand,t) -> match hand with
+			(*Return a player with the proper resources added*)
+			|(inv,cds) -> (col,(addCosts inv totalNewResources,cds),t) 
 
 let handle_move g m =
 	match m with 
@@ -146,13 +187,13 @@ let handle_InitialMove g pt1 pt2 =
 	(*If nextRequest is initial move, then handle appropriately*)
 	if g.gNextRequest = InitialMove then begin 
 		(*Num settlements INCLUDING one about to be placed*)
-		let settlementNum = countSettlements () +1 in 		
+		let settlementNum = countSettlements g +1 in 		
 		(*Point to use if pt1 is an invalid settle spot*)
-		let settlePoint = settleablePoint () in
+		let settlePoint = settleablePoint g  in
 
 		(*Return updated record*)
 	     g with gInterList  = (*Check if provided pt1 is valid to settle*)
-	       					   if suitableSettlementPoint pt1 
+	       					   if suitableSettlementPoint g pt1 
 	       					   then updateList pt1 (g.gActive,Town) (g.gInterList)
 	       					   else updateList ( settlePoint ) 
 	       					   					(g.gActive,Town) 
@@ -160,12 +201,12 @@ let handle_InitialMove g pt1 pt2 =
 
 	       					   (*Check if provided pt1 is valid to settle
 	       					   if it isn't, then the road is invalid too*)
-		   gRoadList 		= if suitableSettlementPoint pt1 
+		   		gRoadList 	= if suitableSettlementPoint g pt1 
 							  then (g.gActive,(pt1,pt2))::g.gRoadList;
 							  else (g.gActive,(settlePoint,
-							  			buildableRoad settlePoint))::g.gRoadList;
+							  			(buildableRoad g settlePoint)::g.gRoadList;
 
-	       gPlayerList 		= (*Only add resources after fifth settlement 
+	      	 	gPlayerList = (*Only add resources after fifth settlement 
 	       					   is placed*)
 	       					  if settlemenNum <= 4 
 	       					  then g.gPlayerList
@@ -173,25 +214,25 @@ let handle_InitialMove g pt1 pt2 =
 		       					  (*Index*)
 		       					  list_indexof (fun ele -> fst(ele) = g.gActive)
 		       					  (*Updated value*)
-		       					  updateResources (g.gActive)
+		       					  initUpdateResources g (g.gActive)
 		       					  (*List*)
 		       					  g.gPlayerList; 
 
-	       gNextColor		= (*Travel forward during first half of iniital phase
+	       		gNextColor	= (*Travel forward during first half of iniital phase
 			   				  and at the very end *)
 			   				  if (settlemenNum < 4 || settlementNum >= 8)
 			   				  then next_turn g.gActive 
 			   				  (*If already four settlements, go in reverse*)
 			   				  else prev_turn g.gActive;  
 
-		   gActive 			= (*Travel forward during first half of iniital phase
+		   		gActive 	= (*Travel forward during first half of iniital phase
 			   				  and at the very end *)
 			   				  if (settlemenNum < 4 || settlementNum >= 8)
 			   				  then next_turn g.gActive 
 			   				  (*If already four settlements, go in reverse*)
 			   				  else prev_turn g.gActive;  
 
-		   gNextRequest		= if settlementNum >= 8 
+		   		gNextRequest= if settlementNum >= 8 
 			   				  then ActionRequest
 			   				  (*If fewer than 8 settlements, then still init
 			   				  phase*)
@@ -220,7 +261,7 @@ let handle_InitialMove g pt1 pt2 =
 		       					  (*Index*)
 		       					  list_indexof (fun ele -> fst(ele) = g.gActive)
 		       					  (*Updated value*)
-		       					  updateResources (g.gActive)
+		       					  initUpdateResources (g.gActive)
 		       					  (*List*)
 		       					  g.gPlayerList; 
 
