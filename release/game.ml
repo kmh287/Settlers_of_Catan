@@ -4,6 +4,14 @@ open Util
 open Print
 
 
+(* add a gPlayer type to represent player *)
+type gPlayer = {
+    gPColor                 : color;
+    gPInventory             : inventory;
+    gPCard                  : cards;
+    gPTrophies              : trophies;
+}
+
 type game = {
 	(*Board*)
     gHexList                : hex list;
@@ -15,7 +23,7 @@ type game = {
     gRobber                 : robber;
 
     (*Player list*)
-    gPlayerList             : player list;
+    gPlayerList             : gPlayer list;
 
     (*Turn*)
     gActive                 : color;
@@ -30,7 +38,7 @@ type game = {
     gNextRequest            : request;
 }
 
-let state_of_game g = 
+let state_of_game g =     
 		(
 		(*Board*)
 		(g.gHexList,g.gPortList,g.gInterList,g.gRoadList,g.gDeck,
@@ -120,6 +128,10 @@ let buildableRoad pt : road =
 	let possibleRoads = List.map (fun ele -> (pt,ele) ) (adjacent_points pt) in
 	list_indexof suitableRoad possibleRoads
 
+
+
+
+
 let handle_move g m =
 	match m with 
 		|InitialMove( (pt1, pt2) ) -> 
@@ -173,7 +185,129 @@ let handle_InitialMove g pt1 pt2 =
 let handle_RobberMove g piece colorOption = (*STUB*)
 let handle_DiscardMove g cost = (*STUB*)
 let handle_TradeResponse g response = (*STUB*)
-let handle_Action g action = (*STUB*)
+
+
+(* update game with a new player status *)
+let updatePlayer game player = 
+  let target = player.gPColor in
+  let pList = game.gPlayerList in
+  let newPList = List.map 
+    (fun p -> if(p.gPColor = target) then player else p) pList in
+  {game with gPlayerList = newPList}
+
+(* find the player from game with specific color *)
+let findPlayer game color = 
+  let pList = game.gPlayerList in
+  List.find (fun p -> p.gPColor = color) pList
+
+(* add new resource to original invetory *)
+let addInv newRes origRes : cost = 
+  map_cost2 (fun n o -> n + o) newRes origRes
+
+(* multiply res according to different type of settlement *)
+let multiRes mul res : cost = 
+  map_cost (fun r -> mul * r) res
+
+(* generate sources to all players and update game status *)
+let generateResource (g : game) : game = 
+  match g.gDiceRolled with
+  | None -> g
+  | Some roll -> 
+    begin
+      let hexList = g.gHexList in
+      let interList = g.gInterList in
+      let rec update hexList game index : game = 
+        match hexList with 
+        | [] -> game
+        | hex::tl -> 
+          begin
+            let (ter, r) = hex in
+            (* if current tile is not the rolled one, keep interating *)
+            if r <> roll then
+              update tl game (index+1)
+            else 
+            (* current hex number equals to roll number *)
+              let curResource = resource_of_terrain ter in
+              match curResource with
+              (* if current resource is none, keep traversing the list *)
+              | None -> update tl game (index+1)
+              | Some res -> 
+                begin
+                  let curBaseRes = single_resource_cost res in  
+                  let adjacentPoints = piece_corners index in
+                  let adjacentInters = 
+                    List.fold_left
+                      (fun inters index -> 
+                        (List.nth interList index)::inters) 
+                      [] adjacentPoints
+                  in
+                  
+                  (* function used to handle adding resource of 
+                  current intersection, and return new game status *)
+                  let addResToPlayer origGame inter : game = 
+                    match inter with
+                    | None -> origGame
+                    (* update the game status when match occupied inter *)
+                    | Some (color, settlement) ->
+                      begin
+                        let curAddRes = 
+                          multiRes 
+                            (settlement_num_resources settlement) curBaseRes 
+                        in
+                        let curPlayer = findPlayer origGame color in
+                        let newInv = 
+                          addInv curAddRes curPlayer.gPInventory in
+                        let newPlayer = 
+                          {curPlayer with gPInventory = newInv} in
+                        updatePlayer origGame newPlayer
+                      end
+                  in
+
+                  (* interate all the adjacent inters to add 
+                  resources to player occupied that inter and 
+                  return new game status *)
+                  let nextGame = 
+                    List.fold_left addResToPlayer game adjacentInters 
+                  in
+
+                  update tl nextGame (index+1)
+                end
+          end
+      in
+      update hexList g 0
+    end
+  
+  
+            
+
+          
+
+
+
+
+let handle_Action g action = 
+  match action with
+  | RollDice -> 
+    let rolledGame = {g with gDiceRolled = Some (random_roll ())} in
+    if rolledGame.gDiceRolled = cROBBER_ROLL then
+      {rolledGame with 
+        rolledGame.gNextRequest = RobberRequest;
+        rolledGame.gNextColor = g.gActive;
+      }
+    else
+      generateResource rolledGame
+
+  | MaritimeTrade mtrade ->
+
+  | DomesticTrade trade ->
+
+  | BuyBuild build ->
+
+  | PlayCard playcard ->
+
+  | EndTurn ->
+
+
 
 
 
