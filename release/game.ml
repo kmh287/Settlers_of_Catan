@@ -114,7 +114,7 @@ let suitableRoad road =
 	(*Return false if road is already built*)
 	not( List.mem road g.gRoadList) 
 
-(*Function to search for a buildable road adjacent to pt *)
+(*Function to return a buildable road adjacent to pt *)
 let buildableRoad pt : road = 
 
 	let possibleRoads = List.map (fun ele -> (pt,ele) ) (adjacent_points pt) in
@@ -145,29 +145,104 @@ let handle_move g m =
 let handle_InitialMove g pt1 pt2 = 
 	(*If nextRequest is initial move, then handle appropriately*)
 	if g.gNextRequest = InitialMove then begin 
-		g with gRoadList 	= (g.gActive,(pt1,pt2))::g.gRoadList;
-	       gInterList 	=  updateList pt1 (g.gActive,Town) (g.gInterList)
-	       gNextColor	= (*How do we advance this, do not know to go
-	       					in forward or reverse order*)
-		   gNextRequest = (*How can we determine whether the next request
-		   					is an initial move or an action?*) 
+		(*Num settlements INCLUDING one about to be placed*)
+		let settlementNum = countSettlements () +1 in 		
+		(*Point to use if pt1 is an invalid settle spot*)
+		let settlePoint = settleablePoint () in
+
+		(*Return updated record*)
+	     g with gInterList  = (*Check if provided pt1 is valid to settle*)
+	       					   if suitableSettlementPoint pt1 
+	       					   then updateList pt1 (g.gActive,Town) (g.gInterList)
+	       					   else updateList ( settlePoint ) 
+	       					   					(g.gActive,Town) 
+	       					   					(g.gInterList);
+
+	       					   (*Check if provided pt1 is valid to settle
+	       					   if it isn't, then the road is invalid too*)
+		   gRoadList 		= if suitableSettlementPoint pt1 
+							  then (g.gActive,(pt1,pt2))::g.gRoadList;
+							  else (g.gActive,(settlePoint,
+							  			buildableRoad settlePoint))::g.gRoadList;
+
+	       gPlayerList 		= (*Only add resources after fifth settlement 
+	       					   is placed*)
+	       					  if settlemenNum <= 4 
+	       					  then g.gPlayerList
+	       					  else updateList 
+		       					  (*Index*)
+		       					  list_indexof (fun ele -> fst(ele) = g.gActive)
+		       					  (*Updated value*)
+		       					  updateResources (g.gActive)
+		       					  (*List*)
+		       					  g.gPlayerList; 
+
+	       gNextColor		= (*Travel forward during first half of iniital phase
+			   				  and at the very end *)
+			   				  if (settlemenNum < 4 || settlementNum >= 8)
+			   				  then next_turn g.gActive 
+			   				  (*If already four settlements, go in reverse*)
+			   				  else prev_turn g.gActive;  
+
+		   gActive 			= (*Travel forward during first half of iniital phase
+			   				  and at the very end *)
+			   				  if (settlemenNum < 4 || settlementNum >= 8)
+			   				  then next_turn g.gActive 
+			   				  (*If already four settlements, go in reverse*)
+			   				  else prev_turn g.gActive;  
+
+		   gNextRequest		= if settlementNum >= 8 
+			   				  then ActionRequest
+			   				  (*If fewer than 8 settlements, then still init
+			   				  phase*)
+			   				  else InitialRequest
 	  end 
 
 	  (*If nextRequest is not an initial move, then enter a minimal 
 	  move. This move will find the first unoccupied point and settle it*)
 	else begin 
 		let unoccupiedPt 	= settleablePoint () in 
-		let unoccupiedRoad	= buildableRoad unoccupiedPt 					
-		g with gRoadList 	= (g.gActive,unoccupiedRoad)::g.gRoadList
+		let unoccupiedRoad	= buildableRoad unoccupiedPt 		
+		let settlementNum = countSettlements ()+1 in 		
 
-			   gInterList 	= updateList unoccupiedPt 
+		(*Return updated record*)
+		g with  gInterList 	= updateList unoccupiedPt 
 			   								(g.gActive,Town) 
-			   								(g.gInterList)
+			   								(g.gInterList);
 
-			   gNextColor	= if countSettlements () <= 4
+				gRoadList 	= (g.gActive,unoccupiedRoad)::g.gRoadList;
+
+	         	gPlayerList = (*Only add resources after fifth settlement 
+	       					   is placed*)
+	       					  if settlemenNum <= 4 
+	       					  then g.gPlayerList
+	       					  else updateList 
+		       					  (*Index*)
+		       					  list_indexof (fun ele -> fst(ele) = g.gActive)
+		       					  (*Updated value*)
+		       					  updateResources (g.gActive)
+		       					  (*List*)
+		       					  g.gPlayerList; 
+
+			   gNextColor	= (*Travel forward during first half of iniital phase
+			   				  and at the very end *)
+			   				  if (settlemenNum < 4 || settlementNum >= 8)
 			   				  then next_turn g.gActive 
+			   				  (*If already four settlements, go in reverse*)
+			   				  else prev_turn g.gActive;  
 
-			   gNextRequest	= (*See above*)
+			   gActive 		= (*Travel forward during first half of iniital phase
+			   				  and at the very end *)
+			   				  if (settlemenNum < 4 || settlementNum >= 8)
+			   				  then next_turn g.gActive 
+			   				  (*If already four settlements, go in reverse*)
+			   				  else prev_turn g.gActive;  
+
+			   gNextRequest	= if settlementNum >= 8 
+			   				  then ActionRequest
+			   				  (*If fewer than 8 settlements, then still init
+			   				  phase*)
+			   				  else InitialRequest
 			end 
 
 let handle_RobberMove g piece colorOption = (*STUB*)
