@@ -121,6 +121,50 @@ let game_of_state (s:state) : game =
 
 let init_game () = game_of_state (gen_initial_state())
 
+let scrubMove (game:game) (move:move) : move = 
+  match move with
+    |InitialMove(pt1,pt2) = (*CONSTRAINTS: - pt1 must be settleable
+                                           - pt2 must be adjacent to pt1
+                                           - The road formed by pt1 and pt2
+                                             must not be owned already)
+
+                              SOLUTIONS:   - If pt1 is not settlable, pick first
+                                              settleable point on the board. 
+                                              If pt1 is settleable but the road
+                                              to pt2 is invalid, pick a new 
+                                              pt2*)
+
+    |RobberMove(piece,colorOption) = (*CONSTRAINTS: - colorOption must be 
+                                                      adjacent to that piece
+                                                      but colorOption can be 
+                                                      None. 
+                                                    - colorOption may not be 
+                                                      the active player
+
+                                        SOLUTIONS:  - Piece is always a valid 
+                                                      choice. 
+                                                    - If colorOption is invalid,
+                                                      set it to a color of a 
+                                                      player on an adjacent 
+                                                      point. If no color exists
+                                                      set it to None. *)
+
+    |DiscardMove(cost) = (*CONSTAINTS:    - Player must be able to afford cost
+
+                           SOLUTIONS      - If player cannot afford cost, then 
+                                            try anothe resource. If player has 
+                                            no resources, d not take anything.*)
+
+    |TradeResponse  = (*CONSTRAINTS:       - Both players must be able to afford
+                                             the trade 
+
+                        SOLUTIONS:          - If either player cannot afford, 
+                                              set response to FALSE.*)
+
+    |Action           (*CONSTRAINTS: XIAO MING FILL THIS IN
+                        SOLUTIONS:   XIAO MING FILL THIS IN *) 
+
+
 (*************helper functions for each case of handle_move.**********
 ****************They are divided into each case***********************
 *****Each function here will take a game and relevent parameters******
