@@ -318,7 +318,10 @@ let buildCity (game:game) (point:point) : game =
     {updatedPGame with
       gInterList = setNthInterList point newCity game.gInterList;}
 
-(* function used to build card and return a updatde game status *)
+(* function used to build card and return a updatde game status. 
+  Noticed that the newly bought card is only added to cardBought
+  but not player's hand, it's only added to player's hand at the
+  end of this turn *)
 let buildCard (game:game) : game = 
   (* if deck is empty, then return original game status *)
   match game.gDeck with
@@ -327,13 +330,13 @@ let buildCard (game:game) : game =
       if(checkCardListNull cList) then game
       else
         let (draw, remain) = pick_one cList in
-        let curPlayer = findPlayer game game.gActive in
+        (* let curPlayer = findPlayer game game.gActive in
         let updatedPlayer = 
           {curPlayer with gPCard = (addToCard draw curPlayer.gPCard)} in
-        let updatedPGame = updatePlayer game updatedPlayer in
-        {updatedPGame with
+        let updatedPGame = updatePlayer game updatedPlayer in *)
+        {game with
           gDeck = Reveal remain;
-          gCardsBought = addToCard draw updatedPGame.gCardsBought;
+          gCardsBought = addToCard draw game.gCardsBought;
         }  
 
 (**********************************************************************)
@@ -355,9 +358,15 @@ let resetGameTurn (game:game) : game =
     gPendingTrade = None;
   }
 
-(* generate the next game status for next turn *)
+(* generate the next game status for next turn, reset next section and 
+ add cards that are bought in this turn into player's hand *)
 let nextTurnGame (game:game) : game = 
-  let resetGame = resetGameTurn game in 
+  let curPlayer = findPlayer game game.gActive in
+  let updatedPlayer = 
+    {curPlayer with 
+      gPCard = (addCardsToCards game.gCardsBought curPlayer.gPCard);} in
+  let updatedPGame = updatePlayer game updatedPlayer in
+  let resetGame = resetGameTurn updatedPGame in 
   let nextPlayerColor = findNextPlayer game in
   {resetGame with
     gActive = nextPlayerColor;

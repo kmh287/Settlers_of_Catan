@@ -350,6 +350,15 @@ let addToCard (newCard:card) (allCards:cards) : cards =
   | Hidden _ -> allCards
   | Reveal cList -> Reveal (addToCardList newCard cList)
 
+let addCardsToCards (bought:cards) (hand:cards) : cards = 
+  match bought with
+  | Hidden _ -> hand
+  | Reveal bList ->
+    begin
+      match hand with
+      | Hidden _ -> hand
+      | Reveal hList -> Reveal (appendCardLists bList hList)
+    end
 
 (**********************************************************************)
 (******            {Player related helper functions}             ******)

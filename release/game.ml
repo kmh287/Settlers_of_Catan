@@ -258,10 +258,43 @@ let handle_DiscardMove (g:game) (cost:cost) : game =
           gNextRequest      = ActionRequest;
   } 
 
-  
-let handle_TradeResponse g response = 
-  failwith "handle_TradeResponse unimplemented"
-
+let handle_TradeResponse (game:game) (response:bool) : game = 
+  (* if trade request has been rejected or 
+    current pending trade is not valid *)
+  if(not response || game.gPendingTrade = None) 
+    then {game with 
+      gPendingTrade = None;
+      gNextRequest = ActionRequest;
+      gNextColor = game.gActive;
+    }
+  (* if trade is success *)
+  else 
+    match game.gPendingTrade with
+    | None -> {game with 
+      gPendingTrade = None;
+      gNextRequest = ActionRequest;
+      gNextColor = game.gActive;
+    }
+    | Some (tColor, sell, buy) -> 
+      begin
+        let curPlayer = findPlayer game game.gActive in
+        let tradePlayer = findPlayer game tColor in
+        let updatedCurPlayer = {curPlayer with
+          gPInventory = 
+            (addCosts (minusCosts curPlayer.gPInventory sell) buy);
+        } in
+        let updatedTradePlayer = {tradePlayer with
+          gPInventory = 
+            (addCosts (minusCosts tradePlayer.gPInventory buy) sell);
+        } in
+        let updatedPGame = (updatePlayer
+          (updatePlayer game updatedCurPlayer) updatedTradePlayer) in
+        {updatedPGame with
+          gPendingTrade = None;
+          gNextRequest = ActionRequest;
+          gNextColor = game.gActive;
+        }
+      end
 
 let handle_Action (game:game) (action:action) : game outcome = 
   match action with
