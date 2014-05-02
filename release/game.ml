@@ -121,10 +121,6 @@ let game_of_state (s:state) : game =
 
 let init_game () = game_of_state (gen_initial_state())
 
-
-
-
-
 (*************helper functions for each case of handle_move.**********
 ****************They are divided into each case***********************
 *****Each function here will take a game and relevent parameters******
@@ -132,7 +128,7 @@ let init_game () = game_of_state (gen_initial_state())
 **************************handle_move*********************************)
 
 
-let handle_InitialMove g pt1 pt2 = 
+let handle_InitialMove (g:game) (pt1:point) (pt2:point) : game = 
   (*Num settlements INCLUDING one about to be placed*)
   let settlementNum = countSettlements g +1 in    
   (*Point to use if pt1 is an invalid settle spot*)
@@ -226,7 +222,7 @@ let handle_InitialMove g pt1 pt2 =
 
 (*Handle the robber move, the piece and color option should already have been
 scrubbed by the scrubber, and are thus assumed to be correct.*)
-let handle_RobberMove g piece colorOption = 
+let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) : game = 
   if colorOption = None 
   then {
           g with gRobber      = piece;
@@ -243,7 +239,7 @@ let handle_RobberMove g piece colorOption =
 (*Handle discards due to the robber. A resource is selected at random 
 and one unit of it is removed from the inventory. The cost should have already been
 scrubbed, and is thus assumed to be correct*)
-let handle_DiscardMove g cost = 
+let handle_DiscardMove (g:game) (cost:cost) : game = 
   (*Discarding player is still set as next color*)
   let discardingColor       = g.gNextColor in 
   let discardingPlayer      = findPlayer g discardingColor in 
@@ -255,7 +251,7 @@ let handle_DiscardMove g cost =
                               (findPlayerIndex g discardingColor) 
                               (*Updated value*)
                               {discardingPlayer with 
-                                gPInventory = minusCost discardingPlayer cost;}
+                                gPInventory = minusCosts discardingPlayerInv cost;}
                               (*List*)
                               (g.gPlayerList); 
           gNextColor        = g.gActive;
@@ -381,4 +377,11 @@ let handle_move (g:game) (m:move) : game outcome =
 
 
 
-let presentation s = failwith "Ren duo de difang bu yao qu" 
+let presentation (s:state) : state = 
+  let g = game_of_state s in 
+  let currentPlayerColor = g.gActive in
+  let newPlayerList = 
+    mapPlayerList (fun player ->  if getColor player = currentPlayerColor 
+                                  then player
+                                  else hidePlayerCards player;) g.gPlayerList in 
+    state_of_game ( {g with gPlayerList = newPlayerList;} )  
