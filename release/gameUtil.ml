@@ -54,7 +54,6 @@ let suitableSettlementPoint (g:game) (pt:point) : bool =
 (*Function to search for a point that does not have 
 have a settlement nor adjacent settlements*)
 let settleablePoint (g:game) : point= 
-
     (*Find index of first element that is settleable in interlist*)
     let intersectionIndices = (mapiIntersecitons (fun i element -> i) g.gInterList) in 
     list_indexof (fun boolean -> boolean)
@@ -75,31 +74,32 @@ let buildableRoad (g:game) (pt:point) : line =
 (******              {initial_move helper functions}             ******)
 (**********************************************************************)
 
-(*
-
+(*Count the total number of settlements (TOWNS AND CITIES) on the board*)
 let countSettlements g = 
     list_count (fun ele -> if ele = None then false else true) g.gInterList
 
+(*Return a list of indices of locations of this color's settlements*)
+let findPlayerSettlements (g:game) (col:color) : point list =
+  let interList = g.gInterList in
+  let uncleanIndexList = mapiIntersecitons 
+                  (fun index ele -> match ele with
+                   |Some (color,settlement) -> if color = col then index else -1
+                   |None -> -1 ) interList in 
+  List.fold_left (fun acc ele -> if ele <> -1
+                                   then ele::acc
+                                   else acc) [] uncleanIndexList
 
 (*Resource updater FOR INIT PHASE*)
-let initUpdateResources g color : player = 
-    (*Find the index of the player in the player list*)
-    let index = list_indexof (fun ele -> fst(ele) = color) g.gInterList in 
+let initUpdateResources g color : gPlayer = 
     (*Map over the list, turn all points that don't belong to color to -1*)
-    let indexList = List.mapi (fun index ele -> if fst(ele) = color 
-                                               then index 
-                                               else -1) in 
-    (*Map over index list, return a list with only the indicies and no -1*)
-    let cleanedIndexList = List.fold_left (fun acc ele -> if ele <> -1
-                                                   then ele::acc
-                                                   else acc) [] indexList in
+    let indexList = findPlayerSettlements g color in 
     (*Find all pieces adjacent to the indices in indexList*)
     let pieceList = List.flatten (List.map (fun ele ->
-                                         adjacent_pieces ele) cleanedIndexList) in
+                                         adjacent_pieces ele) indexList) in
     (*Lookup piece numbers in hex list, and build list of terrain types*)
     let terrainList = List.map (fun ele -> 
                                     fst(List.nth g.gHexList ele)) pieceList in 
-    let rec resourceGatherer (tlist:terain list) (acc:cost) : cost = 
+    let rec resourceGatherer (tlist:terrain list) (acc:cost) : cost = 
         match tlist with 
             |[] -> acc
             |hd::tl -> let rsource = resource_of_terrain hd  in 
@@ -107,21 +107,17 @@ let initUpdateResources g color : player =
                        (*No resource, then move down the list *)
                        then resourceGatherer tl acc
                        (*If there is a resource, add the cost to the acc*)
-                       else let resourceTotal =
+                       else let newResources =
                          map_cost (fun ele -> ele * cRESOURCES_GENERATED_TOWN)
-                                  single_resource_cost rsource in  
+                                  (single_resource_cost (get_some rsource))in  
                        (*Call again on tail, with acc + new resources*)
                        resourceGatherer tl 
-                                    addCosts acc resourceTotal  in 
+                                    (addCosts acc newResources)  in 
     let totalNewResources = resourceGatherer terrainList (0,0,0,0,0) in 
 
     (*Deconstruct player list, then build it again with new resources added*)
-    match (List.nth g.gPlayerList index) with 
-        |(col,hand,t) -> match hand with
-            (*Return a player with the proper resources added*)
-            |(inv,cds) -> (col,(addCosts inv totalNewResources,cds),t) 
-
-*)
+    let player = findPlayer g color in 
+    {player with gPInventory = addCosts player.gPInventory totalNewResources;}
 
 
 (**********************************************************************)

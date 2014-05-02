@@ -277,6 +277,10 @@ let findPlayer (game:game) (color:color) : gPlayer =
   let pList = game.gPlayerList in
   List.find (fun p -> p.gPColor = color) pList
 
+  (*find the index of the player from game with specific color*)
+  let findPlayerIndex (game:game) (color:color) : int = 
+  let pList = game.gPlayerList in 
+  indexofList (fun p -> p.color = color) pList 
 
 (**********************************************************************)
 (******              {Card related helper functions}             ******)

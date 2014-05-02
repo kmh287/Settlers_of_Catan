@@ -128,63 +128,54 @@ let init_game () = game_of_state (gen_initial_state())
 
 
 let handle_InitialMove g pt1 pt2 = 
-  failwith "type incorrected"
-  (*
-  (*If nextRequest is initial move, then handle appropriately*)
-  if g.gNextRequest = InitialMove then begin 
     (*Num settlements INCLUDING one about to be placed*)
     let settlementNum = countSettlements g +1 in    
     (*Point to use if pt1 is an invalid settle spot*)
-    let settlePoint = settleablePoint g  in
 
-    (*Return updated record*)
-       g with gInterList  = (*Check if provided pt1 is valid to settle*)
-                     if suitableSettlementPoint g pt1 
-                     then updateList pt1 (g.gActive,Town) (g.gInterList)
-                     else updateList ( settlePoint ) 
-                              (g.gActive,Town) 
-                              (g.gInterList);
+	(*Return updated record*)
+   {g with 	gInterList = setNthList pt1 (g.gActive,Town) (g.gInterList); 
 
-                     (*Check if provided pt1 is valid to settle
-                     if it isn't, then the road is invalid too*)
-          gRoadList   = if suitableSettlementPoint g pt1 
-                then (g.gActive,(pt1,pt2))::g.gRoadList;
-                else (g.gActive,(settlePoint,
-                      (buildableRoad g settlePoint)::g.gRoadList;
+                 (*Check if provided pt1 is valid to settle
+                 if it isn't, then the road is invalid too*)
+     	   		gRoadList  = if suitableSettlementPoint g pt1 
+							            then (g.gActive,(pt1,pt2))::g.gRoadList
+							            else (g.gActive,(settlePoint,
+							                  (buildableRoad g settlePoint))::g.gRoadList);
 
-            gPlayerList = (*Only add resources after fifth settlement 
-                     is placed*)
-                    if settlemenNum <= 4 
-                    then g.gPlayerList
-                    else updateList 
-                      (*Index*)
-                      list_indexof (fun ele -> fst(ele) = g.gActive)
-                      (*Updated value*)
-                      initUpdateResources g (g.gActive)
-                      (*List*)
-                      g.gPlayerList; 
+           	gPlayerList= (*Only add resources after fifth settlement 
+			                 	is placed*)
+				                if settlemenNum <= 4 
+				                then g.gPlayerList
+				                else setNthList 
+				                  (*Index*)
+				                  list_indexof (fun ele -> fst(ele) = g.gActive)
+				                  (*Updated value*)
+				                  initUpdateResources g (g.gActive)
+				                  (*List*)
+				                  g.gPlayerList; 
 
-            gNextColor  = (*Travel forward during first half of iniital phase
-                  and at the very end *)
-                  if (settlemenNum < 4 || settlementNum >= 8)
-                  then next_turn g.gActive 
-                  (*If already four settlements, go in reverse*)
-                  else prev_turn g.gActive;  
+            gNextColor= (*Travel forward during first half of iniital phase
+			              		and at the very end *)
+						            if (settlemenNum < 4 || settlementNum >= 8)
+						            then next_turn g.gActive 
+						            (*If already four settlements, go in reverse*)
+						            else prev_turn g.gActive;  
 
-          gActive   = (*Travel forward during first half of iniital phase
-                  and at the very end *)
-                  if (settlemenNum < 4 || settlementNum >= 8)
-                  then next_turn g.gActive 
-                  If already four settlements, go in reverse
-                  else prev_turn g.gActive;  
+      			gActive  	= (*Travel forward during first half of iniital phase
+						            and at the very end *)
+						            if (settlemenNum < 4 || settlementNum >= 8)
+						            then next_turn g.gActive 
+						            (*If already four settlements, go in reverse*)
+						            else prev_turn g.gActive;  
 
-          gNextRequest= if settlementNum >= 8 
-                  then ActionRequest
-                  (*If fewer than 8 settlements, then still init
-                  phase*)
-                  else InitialRequest
-    end 
+      		gNextRequest= if settlementNum >= 8 
+					              then ActionRequest
+					              (*If fewer than 8 settlements, then still init
+					              phase*)
+					              else InitialRequest;}
 
+(*
+	(*CODE BELOW THIS SHOULD BE MOVED TO THE SCRUBBER FUNCTION!!*)
     (*If nextRequest is not an initial move, then enter a minimal 
     move. This move will find the first unoccupied point and settle it*)
   else begin 
@@ -287,16 +278,20 @@ let handle_Action (game:game) (action:action) : game =
       nextTurnGame game
 
 
-let handle_move g m =
+let handle_move (g:game) (m:move) : game result  =
   match m with 
     |InitialMove( (pt1, pt2) ) -> 
-        state_of_game (handle_InitialMove g pt1 pt2)  
+        let newGame = (handle_InitialMove g pt1 pt2) in 
+        ((findWinner newGame), newGame) 
     |RobberMove ( (piece,colorOption) ) -> 
-        state_of_game (handle_RobberMove g piece colorOption)
+        let newGame = (handle_RobberMove g piece colorOption) in 
+        ((findWinner newGame), newGame) 
     |DiscardMove(cost) -> 
-        state_of_game (handle_DiscardMove g cost)
+        let newGame = (handle_DiscardMove g cost) in 
+        ((findWinner newGame), newGame) 
     |TradeResponse(response) ->
-        state_of_game (handle_TradeResponse g response)
+        let newGame = (handle_TradeResponse g response) in 
+        ((findWinner newGame), newGame) 
 
     (*This final case MAY require its own function to match the action*)
     (*MAYBE we should match on the action here*)
@@ -305,4 +300,4 @@ let handle_move g m =
 
 
 
-let presentation s = failwith "Were not too much to pay for birth."
+let presentation s = failwith "Ren duo de difang bu yao qu" 
