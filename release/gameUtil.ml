@@ -336,7 +336,7 @@ let buildCard (game:game) : game =
         let updatedPGame = updatePlayer game updatedPlayer in *)
         {game with
           gDeck = Reveal remain;
-          gCardsBought = addToCard draw updatedPGame.gCardsBought;
+          gCardsBought = addToCard draw game.gCardsBought;
         }  
 
 (**********************************************************************)
