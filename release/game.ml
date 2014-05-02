@@ -224,15 +224,45 @@ let handle_InitialMove g pt1 pt2 =
       end 
 *)
 
-
+(*Handle the robber move, the piece and color option should already have been
+scrubbed by the scrubber, and are thus assumed to be correct.*)
 let handle_RobberMove g piece colorOption = 
-  failwith "handle_RobberMove unimplemented"
+  if colorOption = None 
+  then {
+          g with gRobber      = piece;
+                 gNextRequest = ActionRequest;
+        }
+  else  
+        let discardColor = get_some colorOption in 
+        {
+          g with gRobber      = piece;
+                 gNextRequest = DiscardRequest;
+                 gNextColor   = discardColor;
+        }
 
-
-
-
+(*Handle discards due to the robber. A resource is selected at random 
+and one unit of it is removed from the inventory. The cost should have already been
+scrubbed, and is thus assumed to be correct*)
 let handle_DiscardMove g cost = 
-  failwith "handle_DiscardMove unimplemented"
+  (*Discarding player is still set as next color*)
+  let discardingColor       = g.gNextColor in 
+  let discardingPlayer      = findPlayer g discardingColor in 
+  let discardingPlayerInv   = discardingPlayer.gPInventory in 
+
+  {
+  g with gPlayerList         = setNthPlayerList 
+                              (*Index*)
+                              (findPlayerIndex g discardingColor) 
+                              (*Updated value*)
+                              {discardingPlayer with 
+                                gPInventory = minusCost discardingPlayer cost;}
+                              (*List*)
+                              (g.gPlayerList); 
+          gNextColor        = g.gActive;
+          gNextRequest      = ActionRequest;
+  } 
+
+  
 let handle_TradeResponse g response = 
   failwith "handle_TradeResponse unimplemented"
 
