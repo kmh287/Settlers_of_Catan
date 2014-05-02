@@ -303,37 +303,17 @@ let handle_Action (game:game) (action:action) : game outcome =
       (winner, nextTurnGame game)
 
 
-<<<<<<< HEAD
-let handle_move (g:game) (m:move) : game result  =
-  match m with 
-    |InitialMove( (pt1, pt2) ) -> 
-        let newGame = (handle_InitialMove g pt1 pt2) in 
-        ((findWinner newGame), newGame) 
-    |RobberMove ( (piece,colorOption) ) -> 
-        let newGame = (handle_RobberMove g piece colorOption) in 
-        ((findWinner newGame), newGame) 
-    |DiscardMove(cost) -> 
-        let newGame = (handle_DiscardMove g cost) in 
-        ((findWinner newGame), newGame) 
-    |TradeResponse(response) ->
-        let newGame = (handle_TradeResponse g response) in 
-        ((findWinner newGame), newGame) 
-=======
-
-
 
 let handle_move (g:game) (m:move) : game outcome =
   match m with 
     |InitialMove( (pt1, pt2) ) -> 
-      handle_InitialMove g pt1 pt2
+      (None, handle_InitialMove g pt1 pt2)
     |RobberMove ( (piece,colorOption) ) -> 
-      handle_RobberMove g piece colorOption
+      (None, handle_RobberMove g piece colorOption)
     |DiscardMove(cost) -> 
-      handle_DiscardMove g cost
+      (None, handle_DiscardMove g cost)
     |TradeResponse(response) ->
-      handle_TradeResponse g response
->>>>>>> d8fe14e7a0cbf41648e174a568be996f465222e2
-
+      (None, handle_TradeResponse g response)
     (*This final case MAY require its own function to match the action*)
     (*MAYBE we should match on the action here*)
     |Action(action) ->
