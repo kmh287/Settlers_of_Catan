@@ -412,7 +412,7 @@ let findPlayer (game:game) (color:color) : gPlayer =
   indexofList (fun p -> p.color = color) pList 
 
 (**********************************************************************)
-(******              {Card related helper functions}             ******)
+(******              {Cards related helper functions}             ******)
 (**********************************************************************)
 
 let addToCard (newCard:card) (allCards:cards) : cards = 

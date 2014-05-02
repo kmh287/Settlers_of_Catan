@@ -10,7 +10,9 @@ open GameUtil
     gPColor                 : color;
     gPInventory             : inventory;
     gPCard                  : cards;
-    gPTrophies              : trophies;
+    gPKnights               : knights;
+    gPLongestroad           : bool;
+    gPLargestarmy           : bool;
 }
 
 type game = {
@@ -40,16 +42,19 @@ type game = {
 } *)
 
 let player_of_gPlayer (gp:gPlayer) : player = 
-  (gp.gPColor, (gp.gPInventory, gp.gPCard), gp.gPTrophies)
+  (gp.gPColor, (gp.gPInventory, gp.gPCard), 
+      (gp.gPKnights, gp.gPLongestroad, gp.gPLargestarmy) )
 
 let gPlayer_of_player (p:player) : gPlayer = 
   match p with
-  | (color, (inventory, cards), trophies) ->
+  | (color, (inventory, cards), (knights, lr, la) ) ->
     {
-      gPColor = color;
-      gPInventory = inventory;
-      gPCard = cards;
-      gPTrophies = trophies;
+      gPColor           = color;
+      gPInventory       = inventory;
+      gPCard            = cards;
+      gPKnights         = knights;
+      gPLongestroad     = lr;
+      gPLargestarmy     = la;
     }
 
 let state_of_game (g:game) : state =     
@@ -233,19 +238,19 @@ let handle_TradeResponse g response =
   failwith "handle_TradeResponse unimplemented"
 
 
-let handle_Action (game:game) (action:action) : game = 
+let handle_Action (game:game) (action:action) : game outcome = 
   match action with
   | RollDice -> 
     let rolledGame = {game with 
       gDiceRolled = Some (random_roll ())} in
     if rolledGame.gDiceRolled = Some cROBBER_ROLL then
-      {rolledGame with 
+      (None, {rolledGame with 
         gNextRequest = RobberRequest;
         gNextColor = game.gActive;
-      }
+      })
     else
       let updatedGame = generateResource rolledGame in
-      {updatedGame with gNextColor = updatedGame.gActive}
+      (None, {updatedGame with gNextColor = updatedGame.gActive})
   | MaritimeTrade mtrade -> 
       let curPlayer = findPlayer game game.gActive in
       let (sell, buy) = mtrade in
@@ -254,10 +259,10 @@ let handle_Action (game:game) (action:action) : game =
       let updatedInv = updateInventory sell buy ratio origInv in
       let updatedPlayer = {curPlayer with gPInventory = updatedInv;} in
       let updatedGame = updatePlayer game updatedPlayer in
-      {updatedGame with gNextColor = game.gActive;}
+      (None, {updatedGame with gNextColor = game.gActive;})
   | DomesticTrade trade -> 
       let (tradeColor, _, _) = trade in
-      {game with
+      (None, {game with
 
         (* do we need to check number of trades made in this fuction? *)
         gTradesMade = game.gTradesMade + 1;
@@ -265,19 +270,40 @@ let handle_Action (game:game) (action:action) : game =
         gNextColor = tradeColor;
         gNextRequest = TradeRequest;
         gPendingTrade = Some trade;
-      }
+      })
   | BuyBuild build -> 
-    (match build with
-    | BuildRoad road -> buildRoad game road
-    | BuildTown point -> buildTown game point
-    | BuildCity point -> buildCity game point
-    | BuildCard -> buildCard game)
-  | PlayCard playcard -> failwith "unimplemented"
+    let newGame = 
+      (match build with
+      | BuildRoad road -> buildRoad game road
+      | BuildTown point -> buildTown game point
+      | BuildCity point -> buildCity game point
+      | BuildCard -> buildCard game)
+    in (None, newGame)
+  | PlayCard playcard -> 
+    begin
+      match playcard with
+      | PlayKnight robbermove ->
+          let curPlayer = findPlayer game.gActive in
+          let updatedPlayer = 
+            {curPlayer with gPKnights = curPlayer.gPKnights + 1} in
+          let updatedPGame = update game updatedPlayer in
+          (None, {updatedPGame with 
+            gNextRequest = RobberRequest;
+            gNextColor = game.gActive;
+          })
+      | PlayRoadBuilding (road1, roadOption) -> 
+          failwith "unimplemented"
+      | PlayYearOfPlenty (res, resOption) ->
+          failwith "unimplemented"
+      | PlayMonopoly res ->
+          failwith "unimplemented"
+    end
   | EndTurn ->
-      (* let winner = checkWinner game in *)
-      nextTurnGame game
+      let winner = checkWinner game in
+      (winner, nextTurnGame game)
 
 
+<<<<<<< HEAD
 let handle_move (g:game) (m:move) : game result  =
   match m with 
     |InitialMove( (pt1, pt2) ) -> 
@@ -292,11 +318,26 @@ let handle_move (g:game) (m:move) : game result  =
     |TradeResponse(response) ->
         let newGame = (handle_TradeResponse g response) in 
         ((findWinner newGame), newGame) 
+=======
+
+
+
+let handle_move (g:game) (m:move) : game outcome =
+  match m with 
+    |InitialMove( (pt1, pt2) ) -> 
+      handle_InitialMove g pt1 pt2
+    |RobberMove ( (piece,colorOption) ) -> 
+      handle_RobberMove g piece colorOption
+    |DiscardMove(cost) -> 
+      handle_DiscardMove g cost
+    |TradeResponse(response) ->
+      handle_TradeResponse g response
+>>>>>>> d8fe14e7a0cbf41648e174a568be996f465222e2
 
     (*This final case MAY require its own function to match the action*)
     (*MAYBE we should match on the action here*)
     |Action(action) ->
-        state_of_game (handle_Action g action)
+      handle_Action g action
 
 
 
