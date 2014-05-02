@@ -15,11 +15,17 @@ let sizeOfList = List.length
 
 let mapList = List.map
 
+let mapRoadList = List.map
+
+let memRoadList = List.mem
+
 let filterOnList = List.filter
 
 let forAllList = List.for_all
 
 let existsList = List.exists
+
+let mapiIntersecitons = List.mapi
 
 let addToList ele lst = [ele]@lst 
 
@@ -159,42 +165,40 @@ let suitableTown (g:game) (town:point) : bool =
     (adjacent_points town) )
 
 (* Helper function used to check whether building a city on a point is
-valid. Need to consider that there is already a town on that point and
-the town is belong to the current active player, return false is not 
-valid *)
+valid. Need to check that there is already a town on that point and
+that the town belongs to the current active player, return false if not 
+valid build site for city *)
 let suitableCity (g:game) (city:point) : bool = 
   let interList = g.gInterList in
   match (nthOfList interList city) with
   | Some (c, settlement) -> c = g.gActive && settlement = Town
   | _ -> false
 
-(* function that are not type correct, need to be fixed
-
 (*Helper function to check if pt && points adjacent to pt are unsettled*)
-let suitableSettlementPoint g pt = 
-    (*Return true if all points in the adjacency list are unsettled*)
-    List.nth g.gInterList = None && 
-    (List.for_all (fun ele -> List.nth g.gInterList ele = None) 
-                    adjacent_points pt) in 
+let suitableSettlementPoint (g:game) (pt:point) : bool = 
+  (*Replaced by suitableTown rhelper, 
+  kept in for the moment to keep code working*)
+  suitableTown g pt 
 
 (*Function to search for a point that does not have 
 have a settlement nor adjacent settlements*)
-let settleablePoint g : point= 
+let settleablePoint (g:game) : point= 
 
     (*Find index of first element that is settleable in interlist*)
-    list_indexof suitableSettlementPoint g.gInterList
+    let intersectionIndices = (mapiIntersecitons (fun i element -> i) g.gInterList) in 
+    list_indexof (fun boolean -> boolean)
+        (List.map (fun ele -> suitableSettlementPoint g ele) intersectionIndices) 
 
 (*Helper function to check if road is already built*)
-let suitableRoad g road = 
+let suitableRoad (g:game) (road:road) : bool = 
     (*Return false if road is already built*)
-    not( List.mem road g.gRoadList) 
+    not( memRoadList road g.gRoadList) 
 
-(*Function to return a buildable road adjacent to pt *)
-let buildableRoad g pt : road = 
+(*Function to return an unoccupied line with one end at pt *)
+let buildableRoad (g:game) (pt:point) : line = 
+    let occupiedLines = mapRoadList(fun (color,line) -> line) g.gRoadList in 
     let possibleRoads = List.map (fun ele -> (pt,ele) ) (adjacent_points pt) in
-    list_indexof (suitableRoad g possibleRoads)
-
-*)
+    List.find (fun ele -> (not) (List.mem ele occupiedLines)) possibleRoads
 
 (**********************************************************************)
 (******              {initial_move helper functions}             ******)
