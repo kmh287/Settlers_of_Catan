@@ -19,7 +19,11 @@ let filterOnList = List.filter
 
 let forAllList = List.for_all
 
+let existsList = List.exists
+
 let addToList ele lst = [ele]@lst 
+
+let appendLists = List.append
 
 (* function used to set nth of list to a new element, if
 n is greated than the list size, than return original list *)
@@ -104,12 +108,30 @@ let lessThanEqual (cost1:cost) (cost2:cost) : bool =
 (******              {Build related helper functions}            ******)
 (**********************************************************************)
 
-(*Helper function to check if road is already built, need to consider
-points are in a reversed order, return false if road is already built*)
-let suitableRoad (g:game) (road:road) : bool = 
+(* return list all possible adjacent roads with color equals to the
+current active player *)
+let all_adjacent_curColor_road (g:game) (pt:point) : road list = 
+  mapList (fun adPt -> (g.gActive, (pt, adPt))) (adjacent_points pt)
+
+(* helper function used to check whether a road already exists *)
+let existsRoad (g:game) (road:road) : bool = 
   let (c, (p1, p2)) = road in
   let revRoad = (c, (p2, p1)) in
-  not( List.mem road g.gRoadList) && not (List.mem revRoad g.gRoadList)
+  not( List.mem road g.gRoadList) 
+  && not (List.mem revRoad g.gRoadList)
+
+(*Helper function to check if road is suitable. Need to consider the 
+  whether the road has already been built(both (p1,p2)&&(p2, p1) order)
+  and whether this new road is connect to a exsiting road belongs to the
+  player, return false if road is not valid *)
+let suitableRoad (g:game) (road:road) : bool = 
+  let (c, (p1, p2)) = road in
+  (* there are duplicates and road want to add in this 
+    combined list, but doesn't matter *)
+  let adjacentRoads = appendLists 
+    (all_adjacent_curColor_road g p1) (all_adjacent_curColor_road g p2) in
+  not (existsRoad g road) && existsList (existsRoad g) adjacentRoads
+
 
 (* Helper function to check if town is valid, need to consider if there 
 is not town already exists on that point and there are no town that is 
