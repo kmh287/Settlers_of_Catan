@@ -4,7 +4,10 @@ open Util
 open Print
 open GameUtil
 
-(* add a gPlayer type to represent player *)
+(* temporart util file used in developing *)
+open MyGameUtil
+
+
 type gPlayer = {
     gPColor                 : color;
     gPInventory             : inventory;
@@ -250,30 +253,52 @@ let handle_TradeResponse g response = (*STUB*)
 
 
 
-let handle_Action g action = 
+let handle_Action (game:game) (action:action) : game outcome = 
   match action with
   | RollDice -> 
-    let rolledGame = {g with gDiceRolled = Some (random_roll ())} in
-    if rolledGame.gDiceRolled = cROBBER_ROLL then
-      {rolledGame with 
-        rolledGame.gNextRequest = RobberRequest;
-        rolledGame.gNextColor = g.gActive;
-      }
+    let rolledGame = {game with 
+      gDiceRolled = Some (random_roll ())} in
+    if rolledGame.gDiceRolled = Some cROBBER_ROLL then
+      (None, {rolledGame with 
+        gNextRequest = RobberRequest;
+        gNextColor = game.gActive;
+      })
     else
-      generateResource rolledGame
+      let updatedGame = generateResource rolledGame in
+      (None, {updatedGame with gNextColor = updatedGame.gActive})
+  | MaritimeTrade mtrade -> 
+      let curPlayer = findPlayer game game.gActive in
+      let (sell, buy) = mtrade in
+      let ratio = getMariTradeRatio game sell game.gActive in
+      let origInv = curPlayer.gPInventory in
+      let updatedInv = updateInventory sell buy ratio origInv in
+      let updatedPlayer = {curPlayer with gPInventory = updatedInv;} in
+      let updatedGame = updatePlayer game updatedPlayer in
+      (None, {updatedGame with gNextColor = game.gActive;})
+  | DomesticTrade trade -> 
+      let (tradeColor, _, _) = trade in
+      (None, {game with
 
-  | MaritimeTrade mtrade ->
+        (* do we need to check number of trades made in this fuction? *)
+        gTradesMade = game.gTradesMade + 1;
 
-  | DomesticTrade trade ->
-
-  | BuyBuild build ->
-
-  | PlayCard playcard ->
-
+        gNextColor = tradeColor;
+        gNextRequest = TradeRequest;
+        gPendingTrade = Some trade;
+      })
+  | BuyBuild build -> 
+    let builtGame = 
+      (match build with
+      | BuildRoad road -> buildRoad game road
+      | BuildTown point -> buildTown game point
+      | BuildCity point -> buildCity game point
+      | BuildCard -> buildCard game)
+    in
+    (None, builtGame)
+  | PlayCard playcard -> failwith "unimplemented"
   | EndTurn ->
-
-
-
+      let winner = checkWinner game in
+      (winner, nextTurnGame game)
 
 
 let presentation s = failwith "Were not too much to pay for birth."
