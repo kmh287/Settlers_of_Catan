@@ -394,9 +394,9 @@ let setResInventory
     (inv:inventory) (res:resource) (num:int) : inventory = 
   let (b,w,o,g,l) = inv in
   match res with
-  | Brick  ->    (num, w, o, l, g)
-  | Wool   ->    (b, num, o, l, g)
-  | Ore    ->    (b, w, num, l, g)
+  | Brick  ->    (num, w, o, g, l)
+  | Wool   ->    (b, num, o, g, l)
+  | Ore    ->    (b, w, num, g, l)
   | Grain  ->    (b, w, o, num, l)
   | Lumber ->    (b, w, o, g, num)
 
