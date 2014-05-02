@@ -6,7 +6,7 @@ open GameUtil
 
  *)
 
-type gPlayer = {
+(* type gPlayer = {
     gPColor                 : color;
     gPInventory             : inventory;
     gPCard                  : cards;
@@ -37,7 +37,7 @@ type game = {
     (*Next*)
     gNextColor              : color;
     gNextRequest            : request;
-}
+} *)
 
 let player_of_gPlayer (gp:gPlayer) : player = 
   (gp.gPColor, (gp.gPInventory, gp.gPCard), gp.gPTrophies)
@@ -240,7 +240,6 @@ let handle_DiscardMove g cost =
   failwith "handle_DiscardMove unimplemented"
 let handle_TradeResponse g response = 
   failwith "handle_TradeResponse unimplemented"
-
 
 
 let handle_Action (game:game) (action:action) : game = 

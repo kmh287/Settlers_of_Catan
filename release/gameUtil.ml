@@ -25,6 +25,11 @@ let addToList ele lst = [ele]@lst
 
 let appendLists = List.append
 
+let checkNull (lst:'a list) : bool = 
+  match lst with
+  | [] -> true
+  | _  -> false
+
 (* function used to set nth of list to a new element, if
 n is greated than the list size, than return original list *)
 let setNthList (n:int) (ele:'a) (lst:'a list) : 'a list = 
@@ -51,7 +56,7 @@ let updatePlayer (game:game) (player:gPlayer) : game =
   {game with gPlayerList = newPList}
 
 (* find the player from game with specific color *)
-let findPlayer game color = 
+let findPlayer (game:game) (color:color) : gPlayer = 
   let pList = game.gPlayerList in
   List.find (fun p -> p.gPColor = color) pList
 
@@ -61,6 +66,18 @@ let interMatchPlayer (inter:intersection) (player:color) : bool =
   match inter with
   | None -> false
   | Some(c, _) -> c = player
+
+(**********************************************************************)
+(******              {Card related helper functions}             ******)
+(**********************************************************************)
+
+let addToCard (newCard:card) (allCards:cards) : cards = 
+  match allCards with
+  | Hidden _ -> allCards
+  | Reveal cList -> Reveal (addToList newCard cList)
+
+
+
 
 
 (**********************************************************************)
@@ -131,7 +148,6 @@ let suitableRoad (g:game) (road:road) : bool =
   let adjacentRoads = appendLists 
     (all_adjacent_curColor_road g p1) (all_adjacent_curColor_road g p2) in
   not (existsRoad g road) && existsList (existsRoad g) adjacentRoads
-
 
 (* Helper function to check if town is valid, need to consider if there 
 is not town already exists on that point and there are no town that is 
@@ -292,7 +308,8 @@ let generateResource (g : game) : game =
                   
                   (* function used to handle adding resource of 
                   current intersection, and return new game status *)
-                  let addResToPlayer origGame inter : game = 
+                  let addResToPlayer (origGame:game) (inter:intersection)
+                      : game = 
                     match inter with
                     | None -> origGame
                     (* update the game status when match occupied inter *)
@@ -431,7 +448,21 @@ let buildCity (game:game) (point:point) : game =
 
 (* function used to build card and return a updatde game status *)
 let buildCard (game:game) : game = 
-  failwith "buildGame unimplemented"  
+  (* if deck is empty, then return original game status *)
+  match game.gDeck with
+  | Hidden _ -> game
+  | Reveal cList -> 
+      if(checkNull cList) then game
+      else
+        let (draw, remain) = pick_one cList in
+        let curPlayer = findPlayer game game.gActive in
+        let updatedPlayer = 
+          {curPlayer with gPCard = (addToCard draw curPlayer.gPCard)} in
+        let updatedPGame = updatePlayer game updatedPlayer in
+        {updatedPGame with
+          gDeck = Reveal remain;
+          gCardsBought = addToCard draw updatedPGame.gCardsBought;
+        }  
 
 (**********************************************************************)
 (******               {EndTurn helper functions}                 ******)
