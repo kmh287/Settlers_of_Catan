@@ -121,9 +121,10 @@ let game_of_state (s:state) : game =
 
 let init_game () = game_of_state (gen_initial_state())
 
+(*
 let scrubMove (game:game) (move:move) : move = 
   match move with
-    |InitialMove(pt1,pt2) = (*CONSTRAINTS: - pt1 must be settleable
+    |InitialMove(pt1,pt2) = CONSTRAINTS: - pt1 must be settleable
                                            - pt2 must be adjacent to pt1
                                            - The road formed by pt1 and pt2
                                              must not be owned already)
@@ -132,7 +133,7 @@ let scrubMove (game:game) (move:move) : move =
                                               settleable point on the board. 
                                               If pt1 is settleable but the road
                                               to pt2 is invalid, pick a new 
-                                              pt2*)
+                                              pt2
 
     |RobberMove(piece,colorOption) = (*CONSTRAINTS: - colorOption must be 
                                                       adjacent to that piece
@@ -163,7 +164,7 @@ let scrubMove (game:game) (move:move) : move =
 
     |Action           (*CONSTRAINTS: XIAO MING FILL THIS IN
                         SOLUTIONS:   XIAO MING FILL THIS IN *) 
-
+*)
 
 (*************helper functions for each case of handle_move.**********
 ****************They are divided into each case***********************
@@ -383,6 +384,10 @@ let handle_Action (game:game) (action:action) : game outcome =
     in (None, newGame)
   | PlayCard playcard -> 
     begin
+      let curPlayer = findPlayer game game.gActive in
+      let uPlayer = 
+        removeCardFromPlayer curPlayer (cardOfPlaycard playcard) in
+      let game = updatePlayer game uPlayer in
       match playcard with
       | PlayKnight robbermove ->
           let curPlayer = findPlayer game game.gActive in
@@ -454,12 +459,12 @@ let handle_move (g:game) (m:move) : game outcome =
 
 
 (*Return a state with all the opponents' cards obscured*)
-let presentation (s:state) : state = 
-  let g = game_of_state s in 
+let presentation (g:game) : game =  
   let currentPlayerColor = g.gActive in
   (*Map over player list, hide cards of all other playerS*)
   let newPlayerList = 
-    mapPlayerList (fun player ->  if getColor player = currentPlayerColor 
-                                  then player
-                                  else hidePlayerCards player;) g.gPlayerList in 
-    state_of_game ( {g with gPlayerList = newPlayerList;} )  
+    mapPlayerList (fun player ->  
+      if (getPlayerColor player = currentPlayerColor)
+        then player
+      else hidePlayerCards player) g.gPlayerList in 
+    {g with gPlayerList = newPlayerList;}

@@ -253,6 +253,13 @@ let updateInventory (sell:resource) (buy:resource) (ratio:ratio)
 (******              {PlayCard helper functions}                 ******)
 (**********************************************************************)
 
+(* return the card type of specific playcard type *)
+let cardOfPlaycard (pc:playcard) : card = 
+  match pc with
+  | PlayKnight _ -> Knight
+  | PlayRoadBuilding _ -> RoadBuilding
+  | PlayYearOfPlenty _ -> YearOfPlenty
+  | PlayMonopoly _ -> Monopoly
 
 
 (**********************************************************************)

@@ -326,6 +326,7 @@ let existsCardList = List.exists
 
 let mapiCardList = List.mapi
 
+
 let addToCardList ele lst = [ele]@lst 
 
 let appendCardLists = List.append
@@ -340,6 +341,12 @@ n is greated than the list size, than return original list *)
 let setNthCardList (n:int) (ele:'a) (lst:'a list) : 'a list = 
   List.mapi (fun index e -> if (index = n) then ele else e) lst
 
+(** Returns card list with the first item satisfying the 
+  predicate removed. *)
+let rec memRemoveCardList (p : 'a -> bool) (lst : 'a list) : 'a list =
+  match lst with
+    | [] -> []
+    | h::t -> if p h then t else h::(list_memremove p t)
 
 (**********************************************************************)
 (******              {Cards related helper functions}             ******)
@@ -350,6 +357,14 @@ let addToCard (newCard:card) (allCards:cards) : cards =
   | Hidden _ -> allCards
   | Reveal cList -> Reveal (addToCardList newCard cList)
 
+(* remove a specific card from cards and return the removed cards,
+  if the card want to remove doesn't exist, return the original cards *)
+let removeFromCards (card:card) (allCards:cards) :cards = 
+  match allCards with
+  | Hidden _ -> allCards
+  | Reveal cList -> Reveal (memRemoveCardList (fun c -> c = card) cList)
+
+(* combine two cards into one *)
 let addCardsToCards (bought:cards) (hand:cards) : cards = 
   match bought with
   | Hidden _ -> hand
@@ -359,6 +374,13 @@ let addCardsToCards (bought:cards) (hand:cards) : cards =
       | Hidden _ -> hand
       | Reveal hList -> Reveal (appendCardLists bList hList)
     end
+
+(* return whether the cards have a specific card in it *)
+let memCards (card:card) (allCards:cards) : bool = 
+  match allCards with
+  | Hidden _ -> false
+  | Reveal cList -> memCardList card cList
+
 
 (**********************************************************************)
 (******            {Player related helper functions}             ******)
@@ -499,4 +521,18 @@ let setPlayerInvRes (player:gPlayer) (res:resource) (num:int) : gPlayer =
   let inv = player.gPInventory in
   {player with
     gPInventory = setResInventory inv res num;}
+
+(* remove a card from player's hand, if not exist, 
+  just return the original player *)
+let removeCardFromPlayer (player:gPlayer) (card:card) : gPlayer = 
+  let pCards = player.gPCard in
+  if (not(memCards card pCards)) then player
+  else {player with gPCard = removeFromCards card player.gPCard;}
+
+(* return the color of a player *)
+let getPlayerColor (p:gPlayer) : color = p.gPColor
+
+let hidePlayerCards (p:gPlayer) : gPlayer = 
+  {p with gPCard = hide p.gPCard;}
+
 
