@@ -382,9 +382,9 @@ let increaseResInInventory
     (inv:inventory) (res:resource) (delta:int) : inventory = 
   let (b,w,o,g,l) = inv in
   match res with
-  | Brick  ->    (b + delta, w, o, l, g)
-  | Wool   ->    (b, w + delta, o, l, g)
-  | Ore    ->    (b, w, o + delta, l, g)
+  | Brick  ->    (b + delta, w, o, g, l)
+  | Wool   ->    (b, w + delta, o, g, l)
+  | Ore    ->    (b, w, o + delta, g, l)
   | Grain  ->    (b, w, o, g + delta, l)
   | Lumber ->    (b, w, o, g, l + delta)
 
