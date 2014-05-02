@@ -5,14 +5,14 @@
 (* return list all possible adjacent roads with color equals to the
 current active player *)
 let all_adjacent_curColor_road (g:game) (pt:point) : road list = 
-  mapList (fun adPt -> (g.gActive, (pt, adPt))) (adjacent_points pt)
+  mapLineList (fun adPt -> (g.gActive, (pt, adPt))) (adjacent_points pt)
 
 (* helper function used to check whether a road already exists *)
 let existsRoad (g:game) (road:road) : bool = 
   let (c, (p1, p2)) = road in
   let revRoad = (c, (p2, p1)) in
-  not( List.mem road g.gRoadList) 
-  && not (List.mem revRoad g.gRoadList)
+  not( memRoadList road g.gRoadList) 
+  && not (memRoadList revRoad g.gRoadList)
 
 (*Helper function to check if road is suitable. Need to consider the 
   whether the road has already been built(both (p1,p2)&&(p2, p1) order)
@@ -22,7 +22,7 @@ let suitableRoad (g:game) (road:road) : bool =
   let (c, (p1, p2)) = road in
   (* there are duplicates and road want to add in this 
     combined list, but doesn't matter *)
-  let adjacentRoads = appendLists 
+  let adjacentRoads = appendRoadLists 
     (all_adjacent_curColor_road g p1) (all_adjacent_curColor_road g p2) in
   not (existsRoad g road) && existsList (existsRoad g) adjacentRoads
 
@@ -31,8 +31,8 @@ is not town already exists on that point and there are no town that is
 adjacent to it in one road length, return false if not valid *) 
 let suitableTown (g:game) (town:point) : bool = 
   let interList = g.gInterList in
-  (nthOfList interList town = None) && 
-  (forAllList (fun p -> (nthOfList interList p) = None) 
+  (nthOfInterList interList town = None) && 
+  (forAllLineList (fun p -> (nthOfInterList interList p) = None) 
     (adjacent_points town) )
 
 (* Helper function used to check whether building a city on a point is
@@ -41,7 +41,7 @@ that the town belongs to the current active player, return false if not
 valid build site for city *)
 let suitableCity (g:game) (city:point) : bool = 
   let interList = g.gInterList in
-  match (nthOfList interList city) with
+  match (nthOfInterList interList city) with
   | Some (c, settlement) -> c = g.gActive && settlement = Town
   | _ -> false
 
@@ -67,8 +67,8 @@ let suitableRoad (g:game) (road:road) : bool =
 (*Function to return an unoccupied line with one end at pt *)
 let buildableRoad (g:game) (pt:point) : line = 
     let occupiedLines = mapRoadList(fun (color,line) -> line) g.gRoadList in 
-    let possibleRoads = List.map (fun ele -> (pt,ele) ) (adjacent_points pt) in
-    List.find (fun ele -> (not) (List.mem ele occupiedLines)) possibleRoads
+    let possibleRoads = mapLineList (fun ele -> (pt,ele) ) (adjacent_points pt) in
+    findRoadList (fun ele -> (not) (memRoadList ele occupiedLines)) possibleRoads
 
 (**********************************************************************)
 (******              {initial_move helper functions}             ******)
@@ -171,9 +171,9 @@ let generateResource (g : game) : game =
                   let curBaseRes = single_resource_cost res in  
                   let adjacentPoints = piece_corners index in
                   let adjacentInters = 
-                    leftFoldList
+                    leftFoldPointList
                       (fun inters index -> 
-                        (nthOfList interList index)::inters) 
+                        (nthOfInterList interList index)::inters) 
                       [] adjacentPoints
                   in
                   
@@ -203,7 +203,7 @@ let generateResource (g : game) : game =
                   resources to player occupied that inter and 
                   return new game status *)
                   let nextGame = 
-                    leftFoldList addResToPlayer game adjacentInters 
+                    leftFoldInterList addResToPlayer game adjacentInters 
                   in
 
                   update tl nextGame (index+1)
@@ -230,12 +230,12 @@ let getMariTradeRatio
     let ((p1, p2), ratio, pRes) = port in 
     if((pRes = PortResource(res) || pRes = Any) 
       && (
-        (interMatchPlayer (nthOfList interList p1) player) 
-        || (interMatchPlayer (nthOfList interList p2) player)
+        (interMatchPlayer (nthOfInterList interList p1) player) 
+        || (interMatchPlayer (nthOfInterList interList p2) player)
       )) then ratio
     else cMARITIME_DEFAULT_RATIO
   in
-  leftFoldList (fun acc e -> min acc (portRatio e))
+  leftFoldPortList (fun acc e -> min acc (portRatio e))
     cMARITIME_DEFAULT_RATIO portList
     
 
@@ -275,7 +275,7 @@ let buildRoad (game:game) (road:road) : game =
     } in
     let updatedPGame = updatePlayer game updatedPlayer in
     {updatedPGame with
-      gRoadList = addToList road game.gRoadList;}
+      gRoadList = addToRoadList road game.gRoadList;}
 
 (* function used to build town and return a updatde game status *)
 let buildTown (game:game) (point:point) : game = 
@@ -295,7 +295,7 @@ let buildTown (game:game) (point:point) : game =
     let updatedPGame = updatePlayer game updatedPlayer in
     let newTown = Some (game.gActive, Town) in
     {updatedPGame with
-      gInterList = setNthList point newTown game.gInterList;}
+      gInterList = setNthInterList point newTown game.gInterList;}
 
 (* function used to build city and return a updatde game status *)
 let buildCity (game:game) (point:point) : game =
@@ -315,7 +315,7 @@ let buildCity (game:game) (point:point) : game =
     let updatedPGame = updatePlayer game updatedPlayer in
     let newCity = Some (game.gActive, City) in
     {updatedPGame with
-      gInterList = setNthList point newCity game.gInterList;}
+      gInterList = setNthInterList point newCity game.gInterList;}
 
 (* function used to build card and return a updatde game status *)
 let buildCard (game:game) : game = 
@@ -323,7 +323,7 @@ let buildCard (game:game) : game =
   match game.gDeck with
   | Hidden _ -> game
   | Reveal cList -> 
-      if(checkNull cList) then game
+      if(checkCardListNull cList) then game
       else
         let (draw, remain) = pick_one cList in
         let curPlayer = findPlayer game game.gActive in
