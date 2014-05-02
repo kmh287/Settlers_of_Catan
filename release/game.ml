@@ -409,10 +409,11 @@ let handle_move (g:game) (m:move) : game outcome =
       handle_Action g action
 
 
-
+(*Return a state with all the opponents' cards obscured*)
 let presentation (s:state) : state = 
   let g = game_of_state s in 
   let currentPlayerColor = g.gActive in
+  (*Map over player list, hide cards of all other playerS*)
   let newPlayerList = 
     mapPlayerList (fun player ->  if getColor player = currentPlayerColor 
                                   then player
