@@ -1,12 +1,10 @@
-open Definition
+(* open Definition
 open Constant
 open Util
 open Print
 open GameUtil
 
-(* temporart util file used in developing *)
-open MyGameUtil
-
+ *)
 
 type gPlayer = {
     gPColor                 : color;
@@ -120,21 +118,7 @@ let init_game () = game_of_state (gen_initial_state())
 
 
 
-let handle_move g m =
-	match m with 
-		|InitialMove( (pt1, pt2) ) -> 
-				state_of_game (handle_InitialMove g pt1 pt2)  
-		|RobberMove ( (piece,colorOption) ) -> 
-				state_of_game (handle_RobberMove g piece colorOption)
-		|Discard(cost) -> 
-				state_of_game (handle_DiscardMove g cost)
-		|TradeResponse(response) ->
-				state_of_game (handle_TradeResponse g response)
 
-		(*This final case MAY require its own function to match the action*)
-		(*MAYBE we should match on the action here*)
-		|Action(action) ->
-				state_of_game (handle_Action g action)
 
 (*************helper functions for each case of handle_move.**********
 ****************They are divided into each case***********************
@@ -142,7 +126,10 @@ let handle_move g m =
 *****and return a game. The conversion to state will happen in *******
 **************************handle_move*********************************)
 
+
 let handle_InitialMove g pt1 pt2 = 
+  failwith "type incorrected"
+  (*
   (*If nextRequest is initial move, then handle appropriately*)
   if g.gNextRequest = InitialMove then begin 
     (*Num settlements INCLUDING one about to be placed*)
@@ -188,7 +175,7 @@ let handle_InitialMove g pt1 pt2 =
                   and at the very end *)
                   if (settlemenNum < 4 || settlementNum >= 8)
                   then next_turn g.gActive 
-                  (*If already four settlements, go in reverse*)
+                  If already four settlements, go in reverse
                   else prev_turn g.gActive;  
 
           gNextRequest= if settlementNum >= 8 
@@ -244,28 +231,31 @@ let handle_InitialMove g pt1 pt2 =
                   phase*)
                   else InitialRequest
       end 
+*)
+
+
+let handle_RobberMove g piece colorOption = 
+  failwith "handle_RobberMove unimplemented"
+let handle_DiscardMove g cost = 
+  failwith "handle_DiscardMove unimplemented"
+let handle_TradeResponse g response = 
+  failwith "handle_TradeResponse unimplemented"
 
 
 
-let handle_RobberMove g piece colorOption = (*STUB*)
-let handle_DiscardMove g cost = (*STUB*)
-let handle_TradeResponse g response = (*STUB*)
-
-
-
-let handle_Action (game:game) (action:action) : game outcome = 
+let handle_Action (game:game) (action:action) : game = 
   match action with
   | RollDice -> 
     let rolledGame = {game with 
       gDiceRolled = Some (random_roll ())} in
     if rolledGame.gDiceRolled = Some cROBBER_ROLL then
-      (None, {rolledGame with 
+      {rolledGame with 
         gNextRequest = RobberRequest;
         gNextColor = game.gActive;
-      })
+      }
     else
       let updatedGame = generateResource rolledGame in
-      (None, {updatedGame with gNextColor = updatedGame.gActive})
+      {updatedGame with gNextColor = updatedGame.gActive}
   | MaritimeTrade mtrade -> 
       let curPlayer = findPlayer game game.gActive in
       let (sell, buy) = mtrade in
@@ -274,10 +264,10 @@ let handle_Action (game:game) (action:action) : game outcome =
       let updatedInv = updateInventory sell buy ratio origInv in
       let updatedPlayer = {curPlayer with gPInventory = updatedInv;} in
       let updatedGame = updatePlayer game updatedPlayer in
-      (None, {updatedGame with gNextColor = game.gActive;})
+      {updatedGame with gNextColor = game.gActive;}
   | DomesticTrade trade -> 
       let (tradeColor, _, _) = trade in
-      (None, {game with
+      {game with
 
         (* do we need to check number of trades made in this fuction? *)
         gTradesMade = game.gTradesMade + 1;
@@ -285,20 +275,35 @@ let handle_Action (game:game) (action:action) : game outcome =
         gNextColor = tradeColor;
         gNextRequest = TradeRequest;
         gPendingTrade = Some trade;
-      })
+      }
   | BuyBuild build -> 
-    let builtGame = 
-      (match build with
-      | BuildRoad road -> buildRoad game road
-      | BuildTown point -> buildTown game point
-      | BuildCity point -> buildCity game point
-      | BuildCard -> buildCard game)
-    in
-    (None, builtGame)
+    (match build with
+    | BuildRoad road -> buildRoad game road
+    | BuildTown point -> buildTown game point
+    | BuildCity point -> buildCity game point
+    | BuildCard -> buildCard game)
   | PlayCard playcard -> failwith "unimplemented"
   | EndTurn ->
-      let winner = checkWinner game in
-      (winner, nextTurnGame game)
+      (* let winner = checkWinner game in *)
+      nextTurnGame game
+
+
+let handle_move g m =
+  match m with 
+    |InitialMove( (pt1, pt2) ) -> 
+        state_of_game (handle_InitialMove g pt1 pt2)  
+    |RobberMove ( (piece,colorOption) ) -> 
+        state_of_game (handle_RobberMove g piece colorOption)
+    |DiscardMove(cost) -> 
+        state_of_game (handle_DiscardMove g cost)
+    |TradeResponse(response) ->
+        state_of_game (handle_TradeResponse g response)
+
+    (*This final case MAY require its own function to match the action*)
+    (*MAYBE we should match on the action here*)
+    |Action(action) ->
+        state_of_game (handle_Action g action)
+
 
 
 let presentation s = failwith "Were not too much to pay for birth."
