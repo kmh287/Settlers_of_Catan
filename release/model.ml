@@ -408,7 +408,7 @@ let findPlayer (game:game) (color:color) : gPlayer =
 
 
 (**********************************************************************)
-(******              {Card related helper functions}             ******)
+(******              {Cards related helper functions}             ******)
 (**********************************************************************)
 
 let addToCard (newCard:card) (allCards:cards) : cards = 
