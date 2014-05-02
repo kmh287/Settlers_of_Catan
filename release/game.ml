@@ -133,51 +133,55 @@ let init_game () = game_of_state (gen_initial_state())
 
 
 let handle_InitialMove g pt1 pt2 = 
+  failwith "type incorrect"
+(*  
     (*Num settlements INCLUDING one about to be placed*)
     let settlementNum = countSettlements g +1 in    
     (*Point to use if pt1 is an invalid settle spot*)
 
 	(*Return updated record*)
-   {g with 	gInterList = setNthList pt1 (g.gActive,Town) (g.gInterList); 
+   {g with 	gInterList = setNthInterList pt1 Some (g.gActive,Town) (g.gInterList); 
 
                  (*Check if provided pt1 is valid to settle
                  if it isn't, then the road is invalid too*)
-     	   		gRoadList  = if suitableSettlementPoint g pt1 
-							            then (g.gActive,(pt1,pt2))::g.gRoadList
-							            else (g.gActive,(settlePoint,
-							                  (buildableRoad g settlePoint))::g.gRoadList);
+     	   		gRoadList    = if suitableSettlementPoint g pt1 
+							              then (g.gActive,(pt1,pt2))::g.gRoadList
+							              else (g.gActive,(settlePoint,
+							                    (buildableRoad g settlePoint))::g.gRoadList);
+  
+           	gPlayerList  = (*Only add resources after fifth settlement 
+			                   	is placed*)
+				                  if settlemenNum <= 4 
+				                  then g.gPlayerList
+				                  else setNthList 
+				                    (*Index*)
+				                    list_indexof (fun ele -> fst(ele) = g.gActive)
+				                    (*Updated value*)
+				                    initUpdateResources g (g.gActive)
+				                    (*List*)
+				                    g.gPlayerList; 
+  
+            gNextColor   = (*Travel forward during first half of iniital phase
+			              	   	and at the very end *)
+						               if (settlemenNum < 4 || settlementNum >= 8)
+						               then next_turn g.gActive 
+						               (*If already four settlements, go in reverse*)
+						               else prev_turn g.gActive;  
+   
+      			gActive  	   = (*Travel forward during first half of iniital phase
+						               and at the very end *)
+						               if (settlemenNum < 4 || settlementNum >= 8)
+						               then next_turn g.gActive 
+						               (*If already four settlements, go in reverse*)
+						               else prev_turn g.gActive;  
+   
+      		  gNextRequest = if settlementNum >= 8 
+					                 then ActionRequest
+					                 (*If fewer than 8 settlements, then still init
+					                 phase*)
+					                 else InitialRequest;}
 
-           	gPlayerList= (*Only add resources after fifth settlement 
-			                 	is placed*)
-				                if settlemenNum <= 4 
-				                then g.gPlayerList
-				                else setNthList 
-				                  (*Index*)
-				                  list_indexof (fun ele -> fst(ele) = g.gActive)
-				                  (*Updated value*)
-				                  initUpdateResources g (g.gActive)
-				                  (*List*)
-				                  g.gPlayerList; 
-
-            gNextColor= (*Travel forward during first half of iniital phase
-			              		and at the very end *)
-						            if (settlemenNum < 4 || settlementNum >= 8)
-						            then next_turn g.gActive 
-						            (*If already four settlements, go in reverse*)
-						            else prev_turn g.gActive;  
-
-      			gActive  	= (*Travel forward during first half of iniital phase
-						            and at the very end *)
-						            if (settlemenNum < 4 || settlementNum >= 8)
-						            then next_turn g.gActive 
-						            (*If already four settlements, go in reverse*)
-						            else prev_turn g.gActive;  
-
-      		gNextRequest= if settlementNum >= 8 
-					              then ActionRequest
-					              (*If fewer than 8 settlements, then still init
-					              phase*)
-					              else InitialRequest;}
+*)
 
 (*
 	(*CODE BELOW THIS SHOULD BE MOVED TO THE SCRUBBER FUNCTION!!*)
@@ -283,20 +287,51 @@ let handle_Action (game:game) (action:action) : game outcome =
     begin
       match playcard with
       | PlayKnight robbermove ->
-          let curPlayer = findPlayer game.gActive in
+          let curPlayer = findPlayer game game.gActive in
           let updatedPlayer = 
             {curPlayer with gPKnights = curPlayer.gPKnights + 1} in
-          let updatedPGame = update game updatedPlayer in
+          let updatedPGame = updatePlayer game updatedPlayer in
           (None, {updatedPGame with 
             gNextRequest = RobberRequest;
             gNextColor = game.gActive;
           })
       | PlayRoadBuilding (road1, roadOption) -> 
-          failwith "unimplemented"
+          let buildOneGame = buildRoad game road1 in
+          let buildTwoGame = (match roadOption with
+            | None -> buildOneGame
+            | Some road2 -> buildRoad game road2
+          ) in
+          (None, {buildTwoGame with
+            gNextRequest = ActionRequest;
+            gNextColor = game.gActive;
+          })
       | PlayYearOfPlenty (res, resOption) ->
-          failwith "unimplemented"
+          let curPlayer = (findPlayer game game.gActive) in
+          let inv = curPlayer.gPInventory in
+          let incRes1Inv = increaseResInInventory inv res 1 in
+          let incRes2Inv = (match resOption with
+            | None -> incRes1Inv
+            | Some res2 -> increaseResInInventory inv res2 1
+          ) in
+          let updatedPlayer = {curPlayer with gPInventory = incRes2Inv;} in
+          let updatedPGame = updatePlayer game updatedPlayer in
+          (None, {updatedPGame with
+            gNextRequest = ActionRequest;
+            gNextColor = game.gActive;
+          })
       | PlayMonopoly res ->
-          failwith "unimplemented"
+          let sumRes = leftFoldPlayerList (fun sum p -> 
+            sum + num_resource_in_inventory p.gPInventory res
+          ) 0 game.gPlayerList in
+          let curColor = game.gActive in
+          let updatedPlayerList = mapPlayerList (fun p ->
+            if(p.gPColor = curColor) then setPlayerInvRes p res sumRes
+            else setPlayerInvRes p res 0
+          ) game.gPlayerList
+          in
+          (None, {game with
+            gPlayerList = updatedPlayerList;
+          })
     end
   | EndTurn ->
       let winner = checkWinner game in

@@ -24,7 +24,7 @@ let suitableRoad (g:game) (road:road) : bool =
     combined list, but doesn't matter *)
   let adjacentRoads = appendRoadLists 
     (all_adjacent_curColor_road g p1) (all_adjacent_curColor_road g p2) in
-  not (existsRoad g road) && existsList (existsRoad g) adjacentRoads
+  not (existsRoad g road) && existsRoadList (existsRoad g) adjacentRoads
 
 (* Helper function to check if town is valid, need to consider if there 
 is not town already exists on that point and there are no town that is 
@@ -55,14 +55,9 @@ let suitableSettlementPoint (g:game) (pt:point) : bool =
 have a settlement nor adjacent settlements*)
 let settleablePoint (g:game) : point= 
     (*Find index of first element that is settleable in interlist*)
-    let intersectionIndices = (mapiIntersecitons (fun i element -> i) g.gInterList) in 
+    let intersectionIndices = (mapiInterList (fun i element -> i) g.gInterList) in 
     list_indexof (fun boolean -> boolean)
         (List.map (fun ele -> suitableSettlementPoint g ele) intersectionIndices) 
-
-(*Helper function to check if road is already built*)
-let suitableRoad (g:game) (road:road) : bool = 
-    (*Return false if road is already built*)
-    not( memRoadList road g.gRoadList) 
 
 (*Function to return an unoccupied line with one end at pt *)
 let buildableRoad (g:game) (pt:point) : line = 
@@ -81,7 +76,7 @@ let countSettlements g =
 (*Return a list of indices of locations of this color's settlements*)
 let findPlayerSettlements (g:game) (col:color) : point list =
   let interList = g.gInterList in
-  let uncleanIndexList = mapiIntersecitons 
+  let uncleanIndexList = mapiInterList
                   (fun index ele -> match ele with
                    |Some (color,settlement) -> if color = col then index else -1
                    |None -> -1 ) interList in 
@@ -255,7 +250,13 @@ let updateInventory (sell:resource) (buy:resource) (ratio:ratio)
     
 
 (**********************************************************************)
-(******              {BuyBuild helper functions}                ******)
+(******              {PlayCard helper functions}                 ******)
+(**********************************************************************)
+
+
+
+(**********************************************************************)
+(******              {BuyBuild helper functions}                 ******)
 (**********************************************************************)
 
 (* function used to build road and return a updatde game status *)

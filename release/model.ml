@@ -1,53 +1,4 @@
 (**********************************************************************)
-(******            {Model Related helper functions}              ******)
-(**********************************************************************)
-
-
-
-(* function used to fold_left on a list *)
-let leftFoldList = List.fold_left
-
-(* return the nth element of lst *)
-let nthOfList = List.nth
-
-(* return the index of first element satisfy the predicate *)
-let indexOfList = list_indexof 
-
-let sizeOfList = List.length
-
-let mapList = List.map
-
-let mapRoadList = List.map
-
-let memRoadList = List.mem
-
-let filterOnList = List.filter
-
-let forAllList = List.for_all
-
-let existsList = List.exists
-
-let mapiIntersecitons = List.mapi
-
-let addToList ele lst = [ele]@lst 
-
-let appendLists = List.append
-
-let checkNull (lst:'a list) : bool = 
-  match lst with
-  | [] -> true
-  | _  -> false
-
-(* function used to set nth of list to a new element, if
-n is greated than the list size, than return original list *)
-let setNthList (n:int) (ele:'a) (lst:'a list) : 'a list = 
-  List.mapi (fun index e -> if (index = n) then ele else e) lst
-
-
-
-
-
-(**********************************************************************)
 (******                {HexList Model functions}                 ******)
 (**********************************************************************)
 
@@ -349,7 +300,7 @@ let setNthDeckList (n:int) (ele:'a) (lst:'a list) : 'a list =
 
 
 (**********************************************************************)
-(******                 {Deck Model functions}                   ******)
+(******             {CardList Model functions}                   ******)
 (**********************************************************************)
 
 (* function used to fold_left on a list *)
@@ -389,27 +340,6 @@ n is greated than the list size, than return original list *)
 let setNthCardList (n:int) (ele:'a) (lst:'a list) : 'a list = 
   List.mapi (fun index e -> if (index = n) then ele else e) lst
 
-(**********************************************************************)
-(******                {Player Model functions}                  ******)
-(**********************************************************************)
-
-(* update game with a new player status *)
-let updatePlayer (game:game) (player:gPlayer) : game = 
-  let target = player.gPColor in
-  let pList = game.gPlayerList in
-  let newPList = List.map 
-    (fun p -> if(p.gPColor = target) then player else p) pList in
-  {game with gPlayerList = newPList}
-
-(* find the player from game with specific color *)
-let findPlayer (game:game) (color:color) : gPlayer = 
-  let pList = game.gPlayerList in
-  List.find (fun p -> p.gPColor = color) pList
-
-  (*find the index of the player from game with specific color*)
-  let findPlayerIndex (game:game) (color:color) : int = 
-  let pList = game.gPlayerList in 
-  indexofList (fun p -> p.color = color) pList 
 
 (**********************************************************************)
 (******              {Cards related helper functions}             ******)
@@ -418,7 +348,7 @@ let findPlayer (game:game) (color:color) : gPlayer =
 let addToCard (newCard:card) (allCards:cards) : cards = 
   match allCards with
   | Hidden _ -> allCards
-  | Reveal cList -> Reveal (addToList newCard cList)
+  | Reveal cList -> Reveal (addToCardList newCard cList)
 
 
 (**********************************************************************)
@@ -450,13 +380,37 @@ let multiRes (mul:int) (res:cost) : cost = map_cost ( ( * ) mul ) res
 delta can be negtive as well, need to check before call *)
 let increaseResInInventory 
     (inv:inventory) (res:resource) (delta:int) : inventory = 
-  let (b,w,o,l,g) = inv in
+  let (b,w,o,g,l) = inv in
   match res with
   | Brick  ->    (b + delta, w, o, l, g)
   | Wool   ->    (b, w + delta, o, l, g)
   | Ore    ->    (b, w, o + delta, l, g)
-  | Grain  ->    (b, w, o, l + delta, g)
-  | Lumber ->    (b, w, o, l, g + delta)
+  | Grain  ->    (b, w, o, g + delta, l)
+  | Lumber ->    (b, w, o, g, l + delta)
+
+(* set specific resource in the inventory with certain num,
+  return new inventory *)
+let setResInventory
+    (inv:inventory) (res:resource) (num:int) : inventory = 
+  let (b,w,o,g,l) = inv in
+  match res with
+  | Brick  ->    (num, w, o, l, g)
+  | Wool   ->    (b, num, o, l, g)
+  | Ore    ->    (b, w, num, l, g)
+  | Grain  ->    (b, w, o, num, l)
+  | Lumber ->    (b, w, o, g, num)
+
+
+(* set a specific resource in inventory to zero, return original amount 
+of that resource and new inventory *)
+let setResToZero (inv:inventory) (res:resource) : (int * inventory) = 
+  let (b,w,o,g,l) = inv in
+  (match res with
+  | Brick  ->    (b, (0, w, o, g, l))
+  | Wool   ->    (w, (b, 0, o, g, l))
+  | Ore    ->    (o, (b, w, 0, g, l))
+  | Grain  ->    (g, (b, w, o, 0, l))
+  | Lumber ->    (l, (b, w, o, g, 0)) )
 
 
 (* compare cost1 with cost2, return true only if every subset in
@@ -472,5 +426,68 @@ let lessThanEqual (cost1:cost) (cost2:cost) : bool =
   bi <= b && wi <= w && oi <=o && li <= l && gi <= g 
 
 
+(**********************************************************************)
+(******                {Player Model functions}                  ******)
+(**********************************************************************)
 
+(* function used to fold_left on a list *)
+let leftFoldPlayerList = List.fold_left
+
+(* return the nth element of lst *)
+let nthOfPlayerList = List.nth
+
+(* return the index of first element satisfy the predicate *)
+let indexOfPlayerList = list_indexof 
+
+let sizeOfPlayerList = List.length
+
+let mapPlayerList = List.map
+
+let memPlayerList = List.mem
+
+let filterOnPlayerList = List.filter
+
+let forAllPlayerList = List.for_all
+
+let existsPlayerList = List.exists
+
+let mapiPlayerList = List.mapi
+
+let addToPlayerList ele lst = [ele]@lst 
+
+let appendPlayerLists = List.append
+
+let checkPlayerListNull (lst:'a list) : bool = 
+  match lst with
+  | [] -> true
+  | _  -> false
+
+(* function used to set nth of list to a new element, if
+n is greated than the list size, than return original list *)
+let setNthPlayerList (n:int) (ele:'a) (lst:'a list) : 'a list = 
+  List.mapi (fun index e -> if (index = n) then ele else e) lst
+
+(* update game with a new player status *)
+let updatePlayer (game:game) (player:gPlayer) : game = 
+  let target = player.gPColor in
+  let pList = game.gPlayerList in
+  let newPList = List.map 
+    (fun p -> if(p.gPColor = target) then player else p) pList in
+  {game with gPlayerList = newPList}
+
+(* find the player from game with specific color *)
+let findPlayer (game:game) (color:color) : gPlayer = 
+  let pList = game.gPlayerList in
+  List.find (fun p -> p.gPColor = color) pList
+
+(*find the index of the player from game with specific color*)
+let findPlayerIndex (game:game) (color:color) : int = 
+  let pList = game.gPlayerList in 
+  indexOfPlayerList (fun p -> p.gPColor = color) pList 
+
+(* set specific resource in player to certain num *)
+let setPlayerInvRes (player:gPlayer) (res:resource) (num:int) : gPlayer = 
+  let inv = player.gPInventory in
+  {player with
+    gPInventory = setResInventory inv res num;}
 
