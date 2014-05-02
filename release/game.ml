@@ -137,7 +137,7 @@ let handle_InitialMove g pt1 pt2 =
   let settlementNum = countSettlements g +1 in    
   (*Point to use if pt1 is an invalid settle spot*)
 	(*Return updated record*)
- 	{g with 	gInterList = setNthList pt1 (Some(g.gActive,Town)) (g.gInterList); 
+ 	{g with 	gInterList = setNthInterList pt1 (Some(g.gActive,Town)) (g.gInterList); 
 
    	   			gRoadList  = (g.gActive,(pt1,pt2))::g.gRoadList;
 
@@ -145,7 +145,7 @@ let handle_InitialMove g pt1 pt2 =
 			                 	is placed*)
 				                if settlementNum <= 4 
 				                then g.gPlayerList
-				                else setNthList 
+				                else setNthPlayerList 
 				                  (*Index*)
 				                  (findPlayerIndex g g.gActive)
 				                  (*Updated value*)
@@ -226,7 +226,7 @@ let handle_InitialMove g pt1 pt2 =
 
 
 let handle_RobberMove g piece colorOption = 
-  
+  failwith "handle_RobberMove unimplemented"
 
 
 
