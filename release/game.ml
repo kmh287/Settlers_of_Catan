@@ -133,55 +133,46 @@ let init_game () = game_of_state (gen_initial_state())
 
 
 let handle_InitialMove g pt1 pt2 = 
-  failwith "type incorrect"
-(*  
-    (*Num settlements INCLUDING one about to be placed*)
-    let settlementNum = countSettlements g +1 in    
-    (*Point to use if pt1 is an invalid settle spot*)
-
+  (*Num settlements INCLUDING one about to be placed*)
+  let settlementNum = countSettlements g +1 in    
+  (*Point to use if pt1 is an invalid settle spot*)
 	(*Return updated record*)
-   {g with 	gInterList = setNthInterList pt1 Some (g.gActive,Town) (g.gInterList); 
+ 	{g with 	gInterList = setNthList pt1 (Some(g.gActive,Town)) (g.gInterList); 
 
-                 (*Check if provided pt1 is valid to settle
-                 if it isn't, then the road is invalid too*)
-     	   		gRoadList    = if suitableSettlementPoint g pt1 
-							              then (g.gActive,(pt1,pt2))::g.gRoadList
-							              else (g.gActive,(settlePoint,
-							                    (buildableRoad g settlePoint))::g.gRoadList);
-  
-           	gPlayerList  = (*Only add resources after fifth settlement 
-			                   	is placed*)
-				                  if settlemenNum <= 4 
-				                  then g.gPlayerList
-				                  else setNthList 
-				                    (*Index*)
-				                    list_indexof (fun ele -> fst(ele) = g.gActive)
-				                    (*Updated value*)
-				                    initUpdateResources g (g.gActive)
-				                    (*List*)
-				                    g.gPlayerList; 
-  
-            gNextColor   = (*Travel forward during first half of iniital phase
-			              	   	and at the very end *)
-						               if (settlemenNum < 4 || settlementNum >= 8)
-						               then next_turn g.gActive 
-						               (*If already four settlements, go in reverse*)
-						               else prev_turn g.gActive;  
-   
-      			gActive  	   = (*Travel forward during first half of iniital phase
-						               and at the very end *)
-						               if (settlemenNum < 4 || settlementNum >= 8)
-						               then next_turn g.gActive 
-						               (*If already four settlements, go in reverse*)
-						               else prev_turn g.gActive;  
-   
-      		  gNextRequest = if settlementNum >= 8 
-					                 then ActionRequest
-					                 (*If fewer than 8 settlements, then still init
-					                 phase*)
-					                 else InitialRequest;}
+   	   			gRoadList  = (g.gActive,(pt1,pt2))::g.gRoadList;
 
-*)
+         		gPlayerList=(*Only add resources after fifth settlement 
+			                 	is placed*)
+				                if settlementNum <= 4 
+				                then g.gPlayerList
+				                else setNthList 
+				                  (*Index*)
+				                  (findPlayerIndex g g.gActive)
+				                  (*Updated value*)
+				                  (initUpdateResources g (g.gActive))
+				                  (*List*)
+				                  (g.gPlayerList); 
+
+          	gNextColor= (*Travel forward during first half of iniital phase
+			              		and at the very end *)
+						            if (settlementNum < 4 || settlementNum >= 8)
+						            then next_turn g.gActive 
+						            (*If already four settlements, go in reverse*)
+						            else prev_turn g.gActive;  
+
+    				gActive  	= (*Travel forward during first half of iniital phase
+						            and at the very end *)
+						            if (settlementNum < 4 || settlementNum >= 8)
+						            then next_turn g.gActive 
+						            (*If already four settlements, go in reverse*)
+						            else prev_turn g.gActive;  
+
+	    		gNextRequest= if settlementNum >= 8 
+					              then ActionRequest
+					              (*If fewer than 8 settlements, then still init
+					              phase*)
+					              else InitialRequest;}
+
 
 (*
 	(*CODE BELOW THIS SHOULD BE MOVED TO THE SCRUBBER FUNCTION!!*)
@@ -235,7 +226,11 @@ let handle_InitialMove g pt1 pt2 =
 
 
 let handle_RobberMove g piece colorOption = 
-  failwith "handle_RobberMove unimplemented"
+  
+
+
+
+
 let handle_DiscardMove g cost = 
   failwith "handle_DiscardMove unimplemented"
 let handle_TradeResponse g response = 
