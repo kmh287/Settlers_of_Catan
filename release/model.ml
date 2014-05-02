@@ -207,6 +207,8 @@ let addToRoadList ele lst = [ele]@lst
 
 let appendRoadLists = List.append
 
+let findRoadList = List.find
+
 let checkRoadListNull (lst:'a list) : bool = 
   match lst with
   | [] -> true
@@ -216,6 +218,92 @@ let checkRoadListNull (lst:'a list) : bool =
 n is greated than the list size, than return original list *)
 let setNthRoadList (n:int) (ele:'a) (lst:'a list) : 'a list = 
   List.mapi (fun index e -> if (index = n) then ele else e) lst
+
+
+(**********************************************************************)
+(******                {LineList Model functions}                ******)
+(**********************************************************************)
+
+(* function used to fold_left on a list *)
+let leftFoldLineList = List.fold_left
+
+(* return the nth element of lst *)
+let nthOfLineList = List.nth
+
+(* return the index of first element satisfy the predicate *)
+let indexOfLineList = list_indexof 
+
+let sizeOfLineList = List.length
+
+let mapLineList = List.map
+
+let memLineList = List.mem
+
+let filterOnLineList = List.filter
+
+let forAllLineList = List.for_all
+
+let existsLineList = List.exists
+
+let mapiLineList = List.mapi
+
+let addToLineList ele lst = [ele]@lst 
+
+let appendLineLists = List.append
+
+let checkLineListNull (lst:'a list) : bool = 
+  match lst with
+  | [] -> true
+  | _  -> false
+
+(* function used to set nth of list to a new element, if
+n is greated than the list size, than return original list *)
+let setNthLineList (n:int) (ele:'a) (lst:'a list) : 'a list = 
+  List.mapi (fun index e -> if (index = n) then ele else e) lst
+
+(**********************************************************************)
+(******                {PointList Model functions}                ******)
+(**********************************************************************)
+
+(* function used to fold_left on a list *)
+let leftFoldPointList = List.fold_left
+
+(* return the nth element of lst *)
+let nthOfPointList = List.nth
+
+(* return the index of first element satisfy the predicate *)
+let indexOfPointList = list_indexof 
+
+let sizeOfPointList = List.length
+
+let mapPointList = List.map
+
+let memPointList = List.mem
+
+let filterOnPointList = List.filter
+
+let forAllPointList = List.for_all
+
+let existsPointList = List.exists
+
+let mapiPointList = List.mapi
+
+let addToPointList ele lst = [ele]@lst 
+
+let appendPointLists = List.append
+
+let findPointList = List.find
+
+let checkPointListNull (lst:'a list) : bool = 
+  match lst with
+  | [] -> true
+  | _  -> false
+
+(* function used to set nth of list to a new element, if
+n is greated than the list size, than return original list *)
+let setNthPointList (n:int) (ele:'a) (lst:'a list) : 'a list = 
+  List.mapi (fun index e -> if (index = n) then ele else e) lst
+
 
 
 (**********************************************************************)
@@ -259,6 +347,47 @@ n is greated than the list size, than return original list *)
 let setNthDeckList (n:int) (ele:'a) (lst:'a list) : 'a list = 
   List.mapi (fun index e -> if (index = n) then ele else e) lst
 
+
+(**********************************************************************)
+(******                 {Deck Model functions}                   ******)
+(**********************************************************************)
+
+(* function used to fold_left on a list *)
+let leftFoldCardList = List.fold_left
+
+(* return the nth element of lst *)
+let nthOfCardList = List.nth
+
+(* return the index of first element satisfy the predicate *)
+let indexOfCardList = list_indexof 
+
+let sizeOfCardList = List.length
+
+let mapCardList = List.map
+
+let memCardList = List.mem
+
+let filterOnCardList = List.filter
+
+let forAllCardList = List.for_all
+
+let existsCardList = List.exists
+
+let mapiCardList = List.mapi
+
+let addToCardList ele lst = [ele]@lst 
+
+let appendCardLists = List.append
+
+let checkCardListNull (lst:'a list) : bool = 
+  match lst with
+  | [] -> true
+  | _  -> false
+
+(* function used to set nth of list to a new element, if
+n is greated than the list size, than return original list *)
+let setNthCardList (n:int) (ele:'a) (lst:'a list) : 'a list = 
+  List.mapi (fun index e -> if (index = n) then ele else e) lst
 
 (**********************************************************************)
 (******                {Player Model functions}                  ******)
@@ -311,7 +440,7 @@ let minusCosts (cost1:cost) (cost2:cost) : cost =
   map_cost2 (-) cost1 cost2
 
 (* multiply res according to different type of settlement *)
-let multiRes mul res : cost = map_cost ( ( * ) mul ) res
+let multiRes (mul:int) (res:cost) : cost = map_cost ( ( * ) mul ) res
 
 (* update the inventory with specific resource and delta,
 delta can be negtive as well, need to check before call *)
