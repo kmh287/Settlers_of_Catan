@@ -713,14 +713,16 @@ let gen_random_initial_state () : state =
 
 
 type gPlayer = {
-  gPColor                    : color;
-  gPInventory                : inventory;
-  gPCard                     : cards;
-  gPTrophies                  : trophies;
+    gPColor                 : color;
+    gPInventory             : inventory;
+    gPCard                  : cards;
+    gPKnights               : knights;
+    gPLongestroad           : bool;
+    gPLargestarmy           : bool;
 }
 
 type game = {
-    (*Board*)
+  (*Board*)
     gHexList                : hex list;
     gPortList               : port list;
     gInterList              : intersection list;
