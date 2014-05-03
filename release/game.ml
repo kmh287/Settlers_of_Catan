@@ -136,8 +136,8 @@ let handle_InitialMove (g:game) (pt1:point) (pt2:point) : game =
 
 (*Handle the robber move, the piece and color option should already have been
 scrubbed by the scrubber, and are thus assumed to be correct.*)
-let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) : game = 
-  if colorOption = None 
+let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) (knight:bool): game = 
+  if colorOption = None || knight 
   then {
           g with gRobber      = piece;
                  gNextRequest = ActionRequest;
@@ -320,7 +320,7 @@ let handle_move (g:game) (m:move) : game outcome =
   match scrubMove g m with 
     |InitialMove( (pt1, pt2) ) -> 
       (None, handle_InitialMove g pt1 pt2)
-    |RobberMove ( (piece,colorOption) ) -> 
+    |RobberMove ( (piece,colorOption,false) ) -> 
       (None, handle_RobberMove g piece colorOption)
     |DiscardMove(cost) -> 
       (None, handle_DiscardMove g cost)
