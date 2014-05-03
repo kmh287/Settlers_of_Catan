@@ -320,8 +320,8 @@ let handle_move (g:game) (m:move) : game outcome =
   match scrubMove g m with 
     |InitialMove( (pt1, pt2) ) -> 
       (None, handle_InitialMove g pt1 pt2)
-    |RobberMove ( (piece,colorOption,false) ) -> 
-      (None, handle_RobberMove g piece colorOption)
+    |RobberMove (piece,colorOption) -> 
+      (None, handle_RobberMove g piece colorOption false)
     |DiscardMove(cost) -> 
       (None, handle_DiscardMove g cost)
     |TradeResponse(response) ->

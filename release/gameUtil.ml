@@ -425,6 +425,21 @@ let genMinDiscardMove (g:game) : move =
   then DiscardMove((0,0,0,0,0)) 
   else DiscardMove( single_resource_cost (get_some resource) ) 
 
+(* CONS: if didn't accept, then it's ok. If accept, pending
+  trade should not be none. And all contratins in 
+  DomesticTrade: number of trade is less than max, both player
+  has enough resource  *)
+let validTrade (game:game) (accept:bool) : bool = 
+  if(not accept) then true
+  else 
+    match game.gPendingTrade with
+    | None -> false
+    | Some trade -> validDomesticTrade game trade 
+
+(* generate minimum trade response move, just decline trade *)
+let genMinTradeMove (game:game) : move = TradeResponse(false)
+
+
 (* CONS: whether the dice has been rolled *)
 let validRollDice (game:game) : bool = game.gDiceRolled = None
 
@@ -503,11 +518,7 @@ let genMinActionMove (g:game) : move =
   if(g.gDiceRolled = None) then Action(RollDice) 
   else Action(EndTurn)
 
-<<<<<<< HEAD
-(* generate minimum move according to the request *)
-let genMinMove (g:game) (resquest:request) : move = 
-  failwith "unimplemented"
-=======
+
 let genMinMove (g:game) (request:request) : move = 
   match request with 
   | InitialRequest -> genMinInitialMove g 
@@ -515,22 +526,6 @@ let genMinMove (g:game) (request:request) : move =
   | DiscardRequest -> genMinDiscardMove g
   | TradeRequest -> genMinTradeMove g 
   | ActionRequest -> genMinActionMove g 
-
->>>>>>> FETCH_HEAD
-
-(* CONS: if didn't accept, then it's ok. If accept, pending
-  trade should not be none. And all contratins in 
-  DomesticTrade: number of trade is less than max, both player
-  has enough resource  *)
-let validTrade (game:game) (accept:bool) : bool = 
-  if(not accept) then true
-  else 
-    match game.gPendingTrade with
-    | None -> false
-    | Some trade -> validDomesticTrade game trade 
-
-(* generate minimum trade response move, just decline trade *)
-let genMinTradeMove (game:game) : move = TradeResponse(false)
 
 let scrubMove (game:game) (move:move) : move = 
   let request = game.gNextRequest in 
@@ -549,16 +544,11 @@ let scrubMove (game:game) (move:move) : move =
       if validDiscardMove game cost 
       then move 
       else genMinDiscardMove game
-<<<<<<< HEAD
+
     |TradeResponse(accept),TradeRequest -> 
       if (validTrade game accept) then move
       else genMinTradeMove game
-    
-=======
 
-    |TradeResponse(resp),TradeRequest -> failwith "unimplemented"
-
->>>>>>> FETCH_HEAD
     |Action(action),ActionRequest ->
       begin
         match action with
