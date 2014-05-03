@@ -441,9 +441,9 @@ let genMinRobberMove (g:game) : move =
   RobberMove(piece,colorOption) 
 
 
-(* let genMinDiscardMove (g:game) : move = 
+let genMinDiscardMove (g:game) : move = 
   let discardingPlayerColor = g.gNextColor in 
-  let discardingPlayer =  *)
+  let discardingPlayer =  foo in 
 
 let surroundingColors (g:game) (piece:piece) : color option list = 
   let surroudningInters = piece_corners piece in 
