@@ -27,9 +27,9 @@ let existsRoad (g:game) (road:road) : bool =
   let line = (pt1,pt2) in 
   let revLine = (pt2, pt1) in 
   let roads = (roadToLineList g.gRoadList) in 
-  not (memLineList line (roads))  
-  &&
-  not (memLineList revLine (roads)) 
+  (memLineList line (roads))  
+  ||
+  (memLineList revLine (roads)) 
 
 (*Helper function to check if road is suitable. Need to consider the 
   whether the road has already been built(both (p1,p2)&&(p2, p1) order)
@@ -392,7 +392,7 @@ let scrubMove (game:game) (move:move) : move =
       then move 
       else genMinRobberMove game 
 
-    |DiscardMove(cost),DiscardRequest = 
+    |DiscardMove(cost),DiscardRequest -> 
       if validDiscardMove(game,cost) 
       then move 
       else genMinDiscardMove game 
@@ -416,7 +416,7 @@ let scrubMove (game:game) (move:move) : move =
 
 (*Valid IFF pt1 is unsettled and (pt1,pt2) is an unbuilt and suitable move*)
 let validInitialMove (g:game) (pt1:point) (pt2:point) : bool = 
-  suitableTown g pt1 && suitableRoad g (g.gActive,(pt1,pt2))
+  suitableTown g pt1 && not (existsRoad) g (g.gActive,(pt1,pt2))
 
 (*Valid IFF colorOption is adjacent to piece and is not the active player*)
 let validRobberMove (g:game) (piece:piece) (colorOption:color option) : bool = 
