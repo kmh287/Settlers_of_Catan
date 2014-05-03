@@ -435,8 +435,15 @@ let genMinInitialMove (g:game) : move =
   let roadLine = buildableRoad g settleablePoint in 
   InitialMove(settlementPoint,roadLine)
 
+let genMinRobberMove (g:game) : move = 
+  let piece = Random.int (cMAX_PIECE_NUM) in 
+  let colorOption = pick_random (surroundingColorsNoOptions g piece) in 
+  RobberMove(piece,colorOption) 
 
 
+(* let genMinDiscardMove (g:game) : move = 
+  let discardingPlayerColor = g.gNextColor in 
+  let discardingPlayer =  *)
 
 let surroundingColors (g:game) (piece:piece) : color option list = 
   let surroudningInters = piece_corners piece in 
@@ -445,11 +452,11 @@ let surroundingColors (g:game) (piece:piece) : color option list =
     if settlementOption = None 
     then None 
     else Some (fst(get_some settlementOption)) ) surroudningInters
-(*
+
 let surroundingColorsNoOptions (g:game) (piece:piece) : color list = 
   let surroundingColorsOptions = surroundingColors g piece in 
   List.fold_left (fun acc ele -> if ele = None 
                                  then acc 
                                  else (get_some ele)::acc) 
                     [] surroundingColorsOptions
-                    *)
+                    
