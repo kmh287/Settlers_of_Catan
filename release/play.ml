@@ -48,6 +48,7 @@ let play_game (module B : BOT) (module R : BOT) (module O : BOT) (module W : BOT
     in
     let game = Game.game_of_state s in
     let s = Game.state_of_game (Game.presentation game) in
+    print_endline (print_state s);
     let move = timeout cMOVE_TIME handler s cTIMEOUT_MOVE in
     let (winner, game) = Game.handle_move game move in
     let s = Game.state_of_game game in

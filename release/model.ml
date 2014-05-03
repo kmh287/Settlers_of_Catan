@@ -1,3 +1,10 @@
+open Definition
+open Constant
+open Util
+open Print
+include GameType
+
+
 (**********************************************************************)
 (******                {HexList Model functions}                 ******)
 (**********************************************************************)
