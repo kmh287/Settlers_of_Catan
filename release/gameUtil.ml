@@ -371,19 +371,14 @@ let checkWinner (game:game) : color option =
 
 
 let scrubMove (game:game) (move:move) : move = 
-  match move with
-    |InitialMove(pt1,pt2) = CONSTRAINTS: - pt1 must be settleable
-                                           - pt2 must be adjacent to pt1
-                                           - The road formed by pt1 and pt2
-                                             must not be owned already)
+  let request = g.gNextRequest in 
+  match (move,reqeust) with
+    |InitialMove(pt1,pt2),InitialReQuest = 
 
-                              SOLUTIONS:   - If pt1 is not settlable, pick first
-                                              settleable point on the board. 
-                                              If pt1 is settleable but the road
-                                              to pt2 is invalid, pick a new 
-                                              pt2
+    |RobberMove(piece,colorOption),RobberRequest = 
 
-    |RobberMove(piece,colorOption) = (*CONSTRAINTS: - colorOption must be 
+
+    (*CONSTRAINTS: - colorOption must be 
                                                       adjacent to that piece
                                                       but colorOption can be 
                                                       None. 
@@ -398,18 +393,18 @@ let scrubMove (game:game) (move:move) : move =
                                                       point. If no color exists
                                                       set it to None. *)
 
-    |DiscardMove(cost) = (*CONSTAINTS:    - Player must be able to afford cost
+    |DiscardMove(cost),DiscardRequest = (*CONSTAINTS:    - Player must be able to afford cost
 
                            SOLUTIONS      - If player cannot afford cost, then 
                                             try anothe resource. If player has 
                                             no resources, d not take anything.*)
 
-    |TradeResponse  = (*CONSTRAINTS:       - Both players must be able to afford
+    |TradeResponse(resp),TradeRequest  = (*CONSTRAINTS:       - Both players must be able to afford
                                              the trade 
 
                         SOLUTIONS:          - If either player cannot afford, 
                                               set response to FALSE.*)
 
-    |Action           (*CONSTRAINTS: XIAO MING FILL THIS IN
+    |Action(action),ActionRequest=            (*CONSTRAINTS: XIAO MING FILL THIS IN
                         SOLUTIONS:   XIAO MING FILL THIS IN *) 
-
+    |_ -> genMinMove g response 
