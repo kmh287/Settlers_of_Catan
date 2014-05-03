@@ -263,7 +263,8 @@ let handle_Action (game:game) (action:action) : game outcome =
           let updatedPlayer = 
             {curPlayer with gPKnights = curPlayer.gPKnights + 1} in
           let updatedPGame = updatePlayer game updatedPlayer in
-          let updatedRGame = handle_RobberMove game piece colorOp true in
+          let updatedRGame = 
+            handle_RobberMove updatedPGame piece colorOp true in
           (None, {updatedRGame with 
             gCardPlayed = true;
           })
