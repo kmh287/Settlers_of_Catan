@@ -1,8 +1,8 @@
-open Definition
+(* open Definition
 open Constant
 open Util
 open Print
-include Model
+include Model *)
 
 (**********************************************************************)
 (******              {Build related helper functions}            ******)
@@ -143,77 +143,50 @@ let initUpdateResources g color : gPlayer =
 (******              {RollDice helper functions}                 ******)
 (**********************************************************************)
 
+(* return (hex,inter) pair list that satisfy the rolled number *)
+let rolledHexInterPair (g:game) (roll:roll) : (hex * intersection) list = 
+  let interList = g.gInterList in
+  snd(
+    leftFoldHexList (fun (index, acc) (t, r) -> 
+      if (r = roll) then 
+        begin
+          let adjacentPointList = piece_corners index in
+          let newPair = (leftFoldPointList
+            (fun pairs point -> 
+              ((t, r), (nthOfInterList interList point))::pairs) 
+            [] adjacentPointList)
+          in
+          (index+1, List.append newPair acc)  
+        end
+      else (index+1, acc)) (0, []) g.gHexList)
+
+
+(* update the player's resource based on hex, inter pair, return
+  a updated game status *)
+let addResToPlayer (game:game) ((hex, inter):(hex * intersection)):game = 
+  let (ter, r) = hex in
+  match (inter, resource_of_terrain ter) with
+  | Some(color, settlement), Some res ->  
+    begin
+      let curBaseRes = single_resource_cost res in 
+      let curAddRes = multiRes 
+        (settlement_num_resources settlement) curBaseRes in
+      let curPlayer = findPlayer game game.gActive in
+      let newInv = addCosts curAddRes curPlayer.gPInventory in
+      let newPlayer = {curPlayer with gPInventory = newInv} in
+      updatePlayer game newPlayer
+    end
+  | _ -> game
+    
 
 (* generate sources to all players and update game status *)
 let generateResource (g : game) : game = 
   match g.gDiceRolled with
   | None -> g
   | Some roll -> 
-    begin
-      let hexList = g.gHexList in
-      let interList = g.gInterList in
-      let rec update hexList game index : game = 
-        match hexList with 
-        | [] -> game
-        | hex::tl -> 
-          begin
-            let (ter, r) = hex in
-            (* if current tile is not the rolled one, keep interating *)
-            if r <> roll then
-              update tl game (index+1)
-            else 
-            (* current hex number equals to roll number *)
-              let curResource = resource_of_terrain ter in
-              match curResource with
-              (* if current resource is none, keep traversing the list *)
-              | None -> update tl game (index+1)
-              | Some res -> 
-                begin
-                  let curBaseRes = single_resource_cost res in  
-                  let adjacentPoints = piece_corners index in
-                  let adjacentInters = 
-                    leftFoldPointList
-                      (fun inters index -> 
-                        (nthOfInterList interList index)::inters) 
-                      [] adjacentPoints
-                  in
-                  
-                  (* function used to handle adding resource of 
-                  current intersection, and return new game status *)
-                  let addResToPlayer (origGame:game) (inter:intersection)
-                      : game = 
-                    match inter with
-                    | None -> origGame
-                    (* update the game status when match occupied inter *)
-                    | Some (color, settlement) ->
-                      begin
-                        let curAddRes = 
-                          multiRes 
-                            (settlement_num_resources settlement) curBaseRes 
-                        in
-                        let curPlayer = findPlayer origGame color in
-                        let newInv = 
-                          addCosts curAddRes curPlayer.gPInventory in
-                        let newPlayer = 
-                          {curPlayer with gPInventory = newInv} in
-                        updatePlayer origGame newPlayer
-                      end
-                  in
-
-                  (* interate all the adjacent inters to add 
-                  resources to player occupied that inter and 
-                  return new game status *)
-                  let nextGame = 
-                    leftFoldInterList addResToPlayer game adjacentInters 
-                  in
-
-                  update tl nextGame (index+1)
-                end
-          end
-      in
-      update hexList g 0
-    end
-
+      (* this is a (hex * inter) list *)
+      let hexInterPairs = rolledHexInterPair g roll in
+      List.fold_left addResToPlayer g hexInterPairs
 
 
 (**********************************************************************)
