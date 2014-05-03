@@ -258,12 +258,12 @@ let handle_Action (game:game) (action:action) : game outcome =
         removeCardFromPlayer curPlayer (cardOfPlaycard playcard) in
       let game = updatePlayer game uPlayer in
       match playcard with
-      | PlayKnight robbermove ->
+      | PlayKnight (piece, colorOp) ->
           let curPlayer = findPlayer game game.gActive in
           let updatedPlayer = 
             {curPlayer with gPKnights = curPlayer.gPKnights + 1} in
           let updatedPGame = updatePlayer game updatedPlayer in
-          let updatedRGame = handle_RobberMove game robbermove true in
+          let updatedRGame = handle_RobberMove game piece colorOp true in
           (None, {updatedRGame with 
             gCardPlayed = true;
           })
