@@ -1,8 +1,8 @@
-(* open Definition
+open Definition
 open Constant
 open Util
 open Print
-include GameType *)
+include GameType
 
 
 (**********************************************************************)

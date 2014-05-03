@@ -1,8 +1,8 @@
-(* open Definition
+open Definition
 open Constant
 open Util
 open Print
-include Model  *)
+include Model 
 
 (**********************************************************************)
 (******              {Build related helper functions}            ******)
@@ -425,21 +425,6 @@ let genMinDiscardMove (g:game) : move =
   then DiscardMove((0,0,0,0,0)) 
   else DiscardMove( single_resource_cost (get_some resource) ) 
 
-(* CONS: if didn't accept, then it's ok. If accept, pending
-  trade should not be none. And all contratins in 
-  DomesticTrade: number of trade is less than max, both player
-  has enough resource  *)
-let validTrade (game:game) (accept:bool) : bool = 
-  if(not accept) then true
-  else 
-    match game.gPendingTrade with
-    | None -> false
-    | Some trade -> validDomesticTrade game trade 
-
-(* generate minimum trade response move, just decline trade *)
-let genMinTradeMove (game:game) : move = TradeResponse(false)
-
-
 (* CONS: whether the dice has been rolled *)
 let validRollDice (game:game) : bool = game.gDiceRolled = None
 
@@ -512,6 +497,23 @@ let validPlayCard (game:game) (pCard:playcard) : bool =
 
 (* CONS: dice has been rolled *)
 let validEndTurn (game:game) : bool = game.gDiceRolled != None
+
+
+(* CONS: if didn't accept, then it's ok. If accept, pending
+  trade should not be none. And all contratins in 
+  DomesticTrade: number of trade is less than max, both player
+  has enough resource  *)
+let validTrade (game:game) (accept:bool) : bool = 
+  if(not accept) then true
+  else 
+    match game.gPendingTrade with
+    | None -> false
+    | Some trade -> validDomesticTrade game trade 
+
+(* generate minimum trade response move, just decline trade *)
+let genMinTradeMove (game:game) : move = TradeResponse(false)
+
+
 
 (* if dice has been rolled, end turn, otherwise, roll the dice *)
 let genMinActionMove (g:game) : move = 

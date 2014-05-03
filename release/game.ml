@@ -1,8 +1,8 @@
-(* open Definition
+open Definition
 open Constant
 open Util
 open Print
-include GameUtil *)
+include GameUtil
 
 let player_of_gPlayer (gp:gPlayer) : player = 
   (gp.gPColor, (gp.gPInventory, gp.gPCard), 
