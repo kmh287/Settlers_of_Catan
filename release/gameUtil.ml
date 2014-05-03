@@ -395,31 +395,35 @@ let validRobberMove (g:game) (piece:piece) (colorOption:color option) : bool =
   (*Ensure player does not select himself/herself*)
   (colorOption = None || get_some colorOption <> g.gActive) 
 
-(*Valid IFF the *)
+(*Valid IFF the player can afford the discard *)
 let validDiscardMove (g:game) (cost:cost) : bool = 
   let discardingPlayer = findPlayer g g.gNextColor in 
+  sum_cost cost = 1 
+  && 
   validCost (minusCosts discardingPlayer.gPInventory cost)
 
+(*Pick the first suitable point and settle there, pick a random adjacent
+point to build a road.*)
 let genMinInitialMove (g:game) : move = 
-  failwith "unimplemented"
-  (* let settlementPoint = settleablePoint g in 
-  let roadLine = buildableRoad g settleablePoint in 
-  InitialMove( (settlementPoint,roadLine) )  *)
+  let settlementPoint = settleablePoint g in 
+  let roadPoint = get_some (pick_random (adjacent_points settlementPoint)) in 
+  InitialMove( (settlementPoint,roadPoint) ) 
 
+(*Pick a random piece to move the orbber to, and pick a random player
+next to that piece if one exists*)
 let genMinRobberMove (g:game) : move = 
-  failwith "unimplemented"
-  (* let piece = Random.int (cMAX_PIECE_NUM) in 
+  let piece = Random.int (cMAX_PIECE_NUM) in 
   let colorOption = pick_random (surroundingColorsNoOptions g piece) in 
-  RobberMove(piece,colorOption)  *)
+  RobberMove(piece,colorOption) 
 
-
+(*discard the first resource in b,w,o,g,l order that the player 
+has at least 1 of*)
 let genMinDiscardMove (g:game) : move = 
-  failwith "unimplemented"
-  (* let discardingPlayerColor = g.gNextColor in 
-  let discardingPlayer =  foo in   *)
-
-
-
+  let discardingPlayer =  findPlayer g g.gNextColor in
+  let resource = firstAvailableResource discardingPlayer.gPInventory in
+  if resource = None
+  then DiscardMove((0,0,0,0,0)) 
+  else DiscardMove( single_resource_cost (get_some resource) ) 
 
 (* CONS: whether the dice has been rolled *)
 let validRollDice (game:game) : bool = game.gDiceRolled = None
@@ -499,9 +503,20 @@ let genMinActionMove (g:game) : move =
   if(g.gDiceRolled = None) then Action(RollDice) 
   else Action(EndTurn)
 
+<<<<<<< HEAD
 (* generate minimum move according to the request *)
 let genMinMove (g:game) (resquest:request) : move = 
   failwith "unimplemented"
+=======
+let genMinMove (g:game) (request:request) : move = 
+  match request with 
+  | InitialRequest -> genMinInitialMove g 
+  | RobberRequest -> genMinRobberMove g
+  | DiscardRequest -> genMinDiscardMove g
+  | TradeRequest -> genMinTradeMove g 
+  | ActionRequest -> genMinActionMove g 
+
+>>>>>>> FETCH_HEAD
 
 (* CONS: if didn't accept, then it's ok. If accept, pending
   trade should not be none. And all contratins in 
@@ -534,10 +549,16 @@ let scrubMove (game:game) (move:move) : move =
       if validDiscardMove game cost 
       then move 
       else genMinDiscardMove game
+<<<<<<< HEAD
     |TradeResponse(accept),TradeRequest -> 
       if (validTrade game accept) then move
       else genMinTradeMove game
     
+=======
+
+    |TradeResponse(resp),TradeRequest -> failwith "unimplemented"
+
+>>>>>>> FETCH_HEAD
     |Action(action),ActionRequest ->
       begin
         match action with
