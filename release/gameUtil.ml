@@ -433,9 +433,15 @@ let validMariTrade (game:game) (mtrade:maritimetrade) : bool =
   let hasSellAmount = num_resource_in_inventory origInv sell in
   hasSellAmount >= ratio
 
-(* CONS trade time doesn't exceed or equal to the max number *)
-let validDomesticTrade (game:game) : bool = 
+(* CONS trade time doesn't exceed or equal to the max number.
+  the both the active player and the trade player has enough resource to give up  *)
+let validDomesticTrade (game:game) (trade:trade) : bool = 
+  let (tradeColor, sell, buy) = trade in
+  let curPlayer = findPlayer game game.gActive in
+  let tradePlayer = findPlayer game tradeColor in
   game.gTradesMade < cNUM_TRADES_PER_TURN
+  && greaterThanEqual curPlayer.gPInventory sell
+  && greaterThanEqual tradePlayer.gPInventory buy
 
 (* CONS road want to build is suitable and the player has 
   enough resource for building that road *)
@@ -485,14 +491,31 @@ let validPlayCard (game:game) (pCard:playcard) : bool =
         && (roadOp = None || suitableRoad game (get_some roadOp))
   | _ -> hasCard
 
-
-
 (* CONS: dice has been rolled *)
 let validEndTurn (game:game) : bool = game.gDiceRolled != None
 
+(* if dice has been rolled, end turn, otherwise, roll the dice *)
+let genMinActionMove (g:game) : move = 
+  if(g.gDiceRolled = None) then Action(RollDice) 
+  else Action(EndTurn)
 
-let genMinMove (g:game) (request:request) : move = 
+(* generate minimum move according to the request *)
+let genMinMove (g:game) (resquest:request) : move = 
   failwith "unimplemented"
+
+(* CONS: if didn't accept, then it's ok. If accept, pending
+  trade should not be none. And all contratins in 
+  DomesticTrade: number of trade is less than max, both player
+  has enough resource  *)
+let validTrade (game:game) (accept:bool) : bool = 
+  if(not accept) then true
+  else 
+    match game.gPendingTrade with
+    | None -> false
+    | Some trade -> validDomesticTrade game trade 
+
+(* generate minimum trade response move, just decline trade *)
+let genMinTradeMove (game:game) : move = TradeResponse(false)
 
 let scrubMove (game:game) (move:move) : move = 
   let request = game.gNextRequest in 
@@ -511,41 +534,44 @@ let scrubMove (game:game) (move:move) : move =
       if validDiscardMove game cost 
       then move 
       else genMinDiscardMove game
-    |TradeResponse(resp),TradeRequest -> failwith "unimplemented"
+    |TradeResponse(accept),TradeRequest -> 
+      if (validTrade game accept) then move
+      else genMinTradeMove game
+    
     |Action(action),ActionRequest ->
       begin
         match action with
         | RollDice ->  
           if validRollDice game then move
-          else genMinMove game ActionRequest
+          else genMinActionMove game
         | MaritimeTrade mtrade -> 
           if (validMariTrade game mtrade) then move
-          else genMinMove game ActionRequest
+          else genMinActionMove game
         | DomesticTrade trade -> 
-          if (validDomesticTrade game) then move
-          else genMinMove game ActionRequest
+          if (validDomesticTrade game trade) then move
+          else genMinActionMove game
         | BuyBuild build -> 
           begin
             match build with
             | BuildRoad road -> 
               if (validBuildRoad game road) then move
-              else genMinMove game ActionRequest
+              else genMinActionMove game
             | BuildTown town -> 
               if (validBuildTown game town) then move
-              else genMinMove game ActionRequest
+              else genMinActionMove game
             | BuildCity city -> 
               if (validBuildCity game city) then move
-              else genMinMove game ActionRequest
+              else genMinActionMove game
             | BuildCard -> 
               if (validBuildCard game) then move
-              else genMinMove game ActionRequest
+              else genMinActionMove game
           end
         | PlayCard playcard ->
           if(validPlayCard game playcard) then move
-          else genMinMove game ActionRequest
+          else genMinActionMove game
         | EndTurn -> 
           if(validEndTurn game) then move
-          else genMinMove game ActionRequest
+          else genMinActionMove game
       end
-    |_ -> genMinMove game request 
+    |_ -> genMinMove game request
                     
