@@ -415,9 +415,20 @@ let addCosts (cost1:cost) (cost2:cost) : cost =
 let minusCosts (cost1:cost) (cost2:cost) : cost = 
   map_cost2 (-) cost1 cost2
 
-  (*check to see if all vlaues greater than or equal to zero*)
-  let validCost ((b,w,o,g,l):cost) : bool = 
-  (b >= 0) && (w >= 0)  && (o >= 0) && (g >= 0) && (l >= 0) 
+(*check to see if all vlaues greater than or equal to zero*)
+let validCost ((b,w,o,g,l):cost) : bool = 
+(b >= 0) && (w >= 0)  && (o >= 0) && (g >= 0) && (l >= 0) 
+
+
+(*Return the first resource in this cost that is greater than zero. None if 
+all are 0*) 
+let firstAvailableResource ((b,w,o,g,l):cost) : resource option = 
+  if b > 0 then Some Brick 
+  else if w > 0 then Some Wool 
+  else if o > 0 then Some Ore 
+  else if g > 0 then Some Grain 
+  else if l > 0 then Some Lumber 
+  else None  
 
 (* multiply res according to different type of settlement *)
 let multiRes (mul:int) (res:cost) : cost = map_cost ( ( * ) mul ) res
