@@ -416,7 +416,7 @@ let scrubMove (game:game) (move:move) : move =
 
 (*Valid IFF pt1 is unsettled and (pt1,pt2) is an unbuilt and suitable move*)
 let validInitialMove (g:game) (pt1:point) (pt2:point) : bool = 
-  suitableTown g pt1 && not (existsRoad) g (g.gActive,(pt1,pt2))
+  suitableTown g pt1 && not (existsRoad g (g.gActive,(pt1,pt2))) 
 
 (*Valid IFF colorOption is adjacent to piece and is not the active player*)
 let validRobberMove (g:game) (piece:piece) (colorOption:color option) : bool = 
@@ -440,10 +440,10 @@ let genMinRobberMove (g:game) : move =
   let colorOption = pick_random (surroundingColorsNoOptions g piece) in 
   RobberMove(piece,colorOption) 
 
-
 let genMinDiscardMove (g:game) : move = 
   let discardingPlayerColor = g.gNextColor in 
-  let discardingPlayer =  foo in 
+  let discardingPlayer =  findPlayer discardingPlayerColor
+
 
 let surroundingColors (g:game) (piece:piece) : color option list = 
   let surroudningInters = piece_corners piece in 
