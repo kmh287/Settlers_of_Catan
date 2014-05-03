@@ -415,6 +415,10 @@ let addCosts (cost1:cost) (cost2:cost) : cost =
 let minusCosts (cost1:cost) (cost2:cost) : cost = 
   map_cost2 (-) cost1 cost2
 
+  (*check to see if all vlaues greater than or equal to zero*)
+  let validCost ((b,w,o,g,l):cost) : bool = 
+  (b >= 0) && (w >= 0)  && (o >= 0) && (g >= 0) && (l >= 0) 
+
 (* multiply res according to different type of settlement *)
 let multiRes (mul:int) (res:cost) : cost = map_cost ( ( * ) mul ) res
 
