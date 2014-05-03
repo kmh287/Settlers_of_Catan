@@ -13,12 +13,23 @@ current active player *)
 let all_adjacent_curColor_road (g:game) (pt:point) : road list = 
   mapLineList (fun adPt -> (g.gActive, (pt, adPt))) (adjacent_points pt)
 
+(*)
 (* helper function used to check whether a road already exists *)
 let existsRoad (g:game) (road:road) : bool = 
-  let (c, (p1, p2)) = road in
+  let (_, (p1, p2)) = road in
   let revRoad = (c, (p2, p1)) in
   not( memRoadList road g.gRoadList) 
   && not (memRoadList revRoad g.gRoadList)
+*)
+
+let existsRoad (g:game) (road:road) : bool = 
+  let (_,(pt1,pt2)) = road in 
+  let line = (pt1,pt2) in 
+  let revLine = (pt2, pt1) in 
+  let roads = (roadToLineList g.gRoadList) in 
+  not (memLineList line (roads))  
+  &&
+  not (memLineList revLine (roads)) 
 
 (*Helper function to check if road is suitable. Need to consider the 
   whether the road has already been built(both (p1,p2)&&(p2, p1) order)
@@ -69,7 +80,7 @@ let settleablePoint (g:game) : point=
 let buildableRoad (g:game) (pt:point) : line = 
     let occupiedLines = mapRoadList(fun (color,line) -> line) g.gRoadList in 
     let possibleRoads = mapLineList (fun ele -> (pt,ele) ) (adjacent_points pt) in
-    findRoadList (fun ele -> (not) (memRoadList ele occupiedLines)) possibleRoads
+    findRoadList (fun ele -> (not) (existsRoad g ele)) possibleRoads
 
 (**********************************************************************)
 (******              {initial_move helper functions}             ******)
@@ -368,32 +379,25 @@ let checkWinner (game:game) : color option =
 (******                         SCRUBBER                         ******)
 (**********************************************************************)
 
-
-
 let scrubMove (game:game) (move:move) : move = 
-  let request = g.gNextRequest in 
+  let request = game.gNextRequest in 
   match (move,reqeust) with
-    |InitialMove(pt1,pt2),InitialReQuest = 
+    |InitialMove(pt1,pt2),InitialReQuest ->
+      if validInitialMove(game,pt1,pt2)  
+      then move 
+      else genMinInitialMove game  
 
-    |RobberMove(piece,colorOption),RobberRequest = 
+    |RobberMove(piece,colorOption),RobberRequest -> 
+      if validRobberMove(game,piece,colorOption)
+      then move 
+      else genMinRobberMove game 
 
+    |DiscardMove(cost),DiscardRequest = 
+      if validDiscardMove(game,cost) 
+      then move 
+      else genMinDiscardMove game 
 
-    (*CONSTRAINTS: - colorOption must be 
-                                                      adjacent to that piece
-                                                      but colorOption can be 
-                                                      None. 
-                                                    - colorOption may not be 
-                                                      the active player
-
-                                        SOLUTIONS:  - Piece is always a valid 
-                                                      choice. 
-                                                    - If colorOption is invalid,
-                                                      set it to a color of a 
-                                                      player on an adjacent 
-                                                      point. If no color exists
-                                                      set it to None. *)
-
-    |DiscardMove(cost),DiscardRequest = (*CONSTAINTS:    - Player must be able to afford cost
+                          (*CONSTAINTS:    - Player must be able to afford cost
 
                            SOLUTIONS      - If player cannot afford cost, then 
                                             try anothe resource. If player has 
@@ -407,4 +411,45 @@ let scrubMove (game:game) (move:move) : move =
 
     |Action(action),ActionRequest=            (*CONSTRAINTS: XIAO MING FILL THIS IN
                         SOLUTIONS:   XIAO MING FILL THIS IN *) 
-    |_ -> genMinMove g response 
+    |_ -> genMinMove g request
+
+
+(*Valid IFF pt1 is unsettled and (pt1,pt2) is an unbuilt and suitable move*)
+let validInitialMove (g:game) (pt1:point) (pt2:point) : bool = 
+  suitableTown g pt1 && suitableRoad g (g.gActive,(pt1,pt2))
+
+(*Valid IFF colorOption is adjacent to piece and is not the active player*)
+let validRobberMove (g:game) (piece:piece) (colorOption:color option) : bool = 
+  List.mem colorOption (surroundingcolors g piece) 
+  &&
+  (*Ensure player does not select himself/herself*)
+  (colorOption = None || get_some colorOption <> g.gActive) 
+
+(*Valid IFF the *)
+let validDiscardMove (g:game) (cost:cost) : bool = 
+  let discardingPlayer = findPlayer g g.gNextColor in 
+  validCost (minusCosts discardingPlayer.gPInventory cost)
+
+let genMinInitialMove (g:game) : move = 
+  let settlementPoint = settleablePoint g in 
+  let roadLine = buildableRoad g settleablePoint in 
+  InitialMove(settlementPoint,roadLine)
+
+
+
+
+let surroundingColors (g:game) (piece:piece) : color option list = 
+  let surroudningInters = piece_corners piece in 
+  List.map (fun ele -> 
+    let settlementOption = nthOfInterList g.gInterList ele in 
+    if settlementOption = None 
+    then None 
+    else Some (fst(get_some settlementOption)) ) surroudningInters
+(*
+let surroundingColorsNoOptions (g:game) (piece:piece) : color list = 
+  let surroundingColorsOptions = surroundingColors g piece in 
+  List.fold_left (fun acc ele -> if ele = None 
+                                 then acc 
+                                 else (get_some ele)::acc) 
+                    [] surroundingColorsOptions
+                    *)

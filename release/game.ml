@@ -134,60 +134,10 @@ let handle_InitialMove (g:game) (pt1:point) (pt2:point) : game =
 					              else InitialRequest;}
 
 
-(*
-	(*CODE BELOW THIS SHOULD BE MOVED TO THE SCRUBBER FUNCTION!!*)
-    (*If nextRequest is not an initial move, then enter a minimal 
-    move. This move will find the first unoccupied point and settle it*)
-  else begin 
-    let unoccupiedPt  = settleablePoint () in 
-    let unoccupiedRoad  = buildableRoad unoccupiedPt    
-    let settlementNum = countSettlements ()+1 in    
-
-    (*Return updated record*)
-    g with  gInterList  = updateList unoccupiedPt 
-                        (g.gActive,Town) 
-                        (g.gInterList);
-
-        gRoadList   = (g.gActive,unoccupiedRoad)::g.gRoadList;
-
-            gPlayerList = (*Only add resources after fifth settlement 
-                     is placed*)
-                    if settlemenNum <= 4 
-                    then g.gPlayerList
-                    else updateList 
-                      (*Index*)
-                      list_indexof (fun ele -> fst(ele) = g.gActive)
-                      (*Updated value*)
-                      initUpdateResources (g.gActive)
-                      (*List*)
-                      g.gPlayerList; 
-
-         gNextColor = (*Travel forward during first half of iniital phase
-                  and at the very end *)
-                  if (settlemenNum < 4 || settlementNum >= 8)
-                  then next_turn g.gActive 
-                  (*If already four settlements, go in reverse*)
-                  else prev_turn g.gActive;  
-
-         gActive    = (*Travel forward during first half of iniital phase
-                  and at the very end *)
-                  if (settlemenNum < 4 || settlementNum >= 8)
-                  then next_turn g.gActive 
-                  (*If already four settlements, go in reverse*)
-                  else prev_turn g.gActive;  
-
-         gNextRequest = if settlementNum >= 8 
-                  then ActionRequest
-                  (*If fewer than 8 settlements, then still init
-                  phase*)
-                  else InitialRequest
-      end 
-*)
-
 (*Handle the robber move, the piece and color option should already have been
 scrubbed by the scrubber, and are thus assumed to be correct.*)
-let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) : game = 
-  if colorOption = None 
+let handle_RobberMove (g:game) ((piece,colorOption):robbermove) (knight:bool) : game = 
+  if colorOption = None || knight 
   then {
           g with gRobber      = piece;
                  gNextRequest = ActionRequest;
@@ -208,16 +158,31 @@ let handle_DiscardMove (g:game) (cost:cost) : game =
   let discardingColor       = g.gNextColor in 
   let discardingPlayer      = findPlayer g discardingColor in 
   let discardingPlayerInv   = discardingPlayer.gPInventory in 
+  let stealingColor         = g.gActive in 
+  let stealingPlayer        = findPlayer g stealingColor in 
+  let stealingPlayerInv     = stealingPlayer.gPInventory in 
 
   {
-  g with gPlayerList         = setNthPlayerList 
+  g with gPlayerList         = (*Remove the resource from the player*) 
+                              let playersIntermediate = setNthPlayerList 
                               (*Index*)
                               (findPlayerIndex g discardingColor) 
                               (*Updated value*)
                               {discardingPlayer with 
                                 gPInventory = minusCosts discardingPlayerInv cost;}
                               (*List*)
-                              (g.gPlayerList); 
+                              (g.gPlayerList) in 
+
+                              (*Add resource to player that rolled orbber*)
+                              setNthPlayerList 
+                              (*Index*)
+                              (findPlayerIndex g stealingColor) 
+                              (*Updated value*)
+                              {stealingPlayer with 
+                                gPInventory = addCosts stealingPlayerInv cost;}
+                              (*List*)
+                              (playersIntermediate) ;
+
           gNextColor        = g.gActive;
           gNextRequest      = ActionRequest;
   } 
@@ -365,7 +330,7 @@ let handle_move (g:game) (m:move) : game outcome =
   match m with 
     |InitialMove( (pt1, pt2) ) -> 
       (None, handle_InitialMove g pt1 pt2)
-    |RobberMove ( (piece,colorOption) ) -> 
+    |RobberMove ( (piece,colorOption,false) ) -> 
       (None, handle_RobberMove g piece colorOption)
     |DiscardMove(cost) -> 
       (None, handle_DiscardMove g cost)
