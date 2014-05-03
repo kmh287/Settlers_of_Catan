@@ -312,8 +312,8 @@ let handle_Action (game:game) (action:action) : game outcome =
           })
     end
   | EndTurn ->
-      let winner = checkWinner game in
-      (winner, nextTurnGame game)
+      (* let winner = checkWinner game in *)
+      (None, nextTurnGame game)
 
 
 
