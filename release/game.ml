@@ -317,7 +317,7 @@ let handle_Action (game:game) (action:action) : game outcome =
 
 
 let handle_move (g:game) (m:move) : game outcome =
-  match m with 
+  match scrubMove g m with 
     |InitialMove( (pt1, pt2) ) -> 
       (None, handle_InitialMove g pt1 pt2)
     |RobberMove ( (piece,colorOption) ) -> 
@@ -326,8 +326,6 @@ let handle_move (g:game) (m:move) : game outcome =
       (None, handle_DiscardMove g cost)
     |TradeResponse(response) ->
       (None, handle_TradeResponse g response)
-    (*This final case MAY require its own function to match the action*)
-    (*MAYBE we should match on the action here*)
     |Action(action) ->
       handle_Action g action
 
