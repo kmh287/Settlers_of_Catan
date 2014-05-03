@@ -1,8 +1,8 @@
-open Definition
+(* open Definition
 open Constant
 open Util
 open Print
-include GameUtil
+include GameUtil *)
 
 let player_of_gPlayer (gp:gPlayer) : player = 
   (gp.gPColor, (gp.gPInventory, gp.gPCard), 
@@ -136,8 +136,8 @@ let handle_InitialMove (g:game) (pt1:point) (pt2:point) : game =
 
 (*Handle the robber move, the piece and color option should already have been
 scrubbed by the scrubber, and are thus assumed to be correct.*)
-let handle_RobberMove (g:game) ((piece,colorOption):robbermove) (knight:bool) : game = 
-  if colorOption = None || knight 
+let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) : game = 
+  if colorOption = None 
   then {
           g with gRobber      = piece;
                  gNextRequest = ActionRequest;
@@ -158,31 +158,16 @@ let handle_DiscardMove (g:game) (cost:cost) : game =
   let discardingColor       = g.gNextColor in 
   let discardingPlayer      = findPlayer g discardingColor in 
   let discardingPlayerInv   = discardingPlayer.gPInventory in 
-  let stealingColor         = g.gActive in 
-  let stealingPlayer        = findPlayer g stealingColor in 
-  let stealingPlayerInv     = stealingPlayer.gPInventory in 
 
   {
-  g with gPlayerList         = (*Remove the resource from the player*) 
-                              let playersIntermediate = setNthPlayerList 
+  g with gPlayerList         = setNthPlayerList 
                               (*Index*)
                               (findPlayerIndex g discardingColor) 
                               (*Updated value*)
                               {discardingPlayer with 
                                 gPInventory = minusCosts discardingPlayerInv cost;}
                               (*List*)
-                              (g.gPlayerList) in 
-
-                              (*Add resource to player that rolled orbber*)
-                              setNthPlayerList 
-                              (*Index*)
-                              (findPlayerIndex g stealingColor) 
-                              (*Updated value*)
-                              {stealingPlayer with 
-                                gPInventory = addCosts stealingPlayerInv cost;}
-                              (*List*)
-                              (playersIntermediate) ;
-
+                              (g.gPlayerList); 
           gNextColor        = g.gActive;
           gNextRequest      = ActionRequest;
   } 
@@ -278,9 +263,9 @@ let handle_Action (game:game) (action:action) : game outcome =
           let updatedPlayer = 
             {curPlayer with gPKnights = curPlayer.gPKnights + 1} in
           let updatedPGame = updatePlayer game updatedPlayer in
-          (None, {updatedPGame with 
-            gNextRequest = RobberRequest;
-            gNextColor = game.gActive;
+          let updatedRGame = handle_RobberMove game robbermove true in
+          (None, {updatedRGame with 
+            gCardPlayed = true;
           })
       | PlayRoadBuilding (road1, roadOption) -> 
           let buildOneGame = buildRoad game road1 in
@@ -289,6 +274,7 @@ let handle_Action (game:game) (action:action) : game outcome =
             | Some road2 -> buildRoad game road2
           ) in
           (None, {buildTwoGame with
+            gCardPlayed = true;
             gNextRequest = ActionRequest;
             gNextColor = game.gActive;
           })
@@ -303,6 +289,7 @@ let handle_Action (game:game) (action:action) : game outcome =
           let updatedPlayer = {curPlayer with gPInventory = incRes2Inv;} in
           let updatedPGame = updatePlayer game updatedPlayer in
           (None, {updatedPGame with
+            gCardPlayed = true;
             gNextRequest = ActionRequest;
             gNextColor = game.gActive;
           })
@@ -317,7 +304,10 @@ let handle_Action (game:game) (action:action) : game outcome =
           ) game.gPlayerList
           in
           (None, {game with
+            gCardPlayed = true;
             gPlayerList = updatedPlayerList;
+            gNextRequest = ActionRequest;
+            gNextColor = game.gActive;
           })
     end
   | EndTurn ->
@@ -330,7 +320,7 @@ let handle_move (g:game) (m:move) : game outcome =
   match m with 
     |InitialMove( (pt1, pt2) ) -> 
       (None, handle_InitialMove g pt1 pt2)
-    |RobberMove ( (piece,colorOption,false) ) -> 
+    |RobberMove ( (piece,colorOption) ) -> 
       (None, handle_RobberMove g piece colorOption)
     |DiscardMove(cost) -> 
       (None, handle_DiscardMove g cost)

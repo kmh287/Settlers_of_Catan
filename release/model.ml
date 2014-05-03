@@ -1,8 +1,8 @@
-open Definition
+(* open Definition
 open Constant
 open Util
 open Print
-include GameType
+include GameType *)
 
 
 (**********************************************************************)
@@ -388,6 +388,10 @@ let memCards (card:card) (allCards:cards) : bool =
   | Hidden _ -> false
   | Reveal cList -> memCardList card cList
 
+let sizeOfCards (cards:cards) : int = 
+  match cards with
+  | Hidden num -> num
+  | Reveal cList -> sizeOfCardList cList
 
 (**********************************************************************)
 (******            {Player related helper functions}             ******)
@@ -410,10 +414,6 @@ let addCosts (cost1:cost) (cost2:cost) : cost =
 (* cost1 - cost2 *)
 let minusCosts (cost1:cost) (cost2:cost) : cost = 
   map_cost2 (-) cost1 cost2
-
-(*Check if all vlaues >= *) 
-let validCost ((b,w,o,l,g) : cost) : bool =
-  (b >= 0) && (w >= 0) && (o >= 0) && (l >= 0) && (g>=0) 
 
 (* multiply res according to different type of settlement *)
 let multiRes (mul:int) (res:cost) : cost = map_cost ( ( * ) mul ) res

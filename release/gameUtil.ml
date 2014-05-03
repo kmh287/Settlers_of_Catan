@@ -1,8 +1,8 @@
-open Definition
+(* open Definition
 open Constant
 open Util
 open Print
-include Model 
+include Model  *)
 
 (**********************************************************************)
 (******              {Build related helper functions}            ******)
@@ -13,23 +13,12 @@ current active player *)
 let all_adjacent_curColor_road (g:game) (pt:point) : road list = 
   mapLineList (fun adPt -> (g.gActive, (pt, adPt))) (adjacent_points pt)
 
-(*)
 (* helper function used to check whether a road already exists *)
 let existsRoad (g:game) (road:road) : bool = 
-  let (_, (p1, p2)) = road in
+  let (c, (p1, p2)) = road in
   let revRoad = (c, (p2, p1)) in
   not( memRoadList road g.gRoadList) 
   && not (memRoadList revRoad g.gRoadList)
-*)
-
-let existsRoad (g:game) (road:road) : bool = 
-  let (_,(pt1,pt2)) = road in 
-  let line = (pt1,pt2) in 
-  let revLine = (pt2, pt1) in 
-  let roads = (roadToLineList g.gRoadList) in 
-  (memLineList line (roads))  
-  ||
-  (memLineList revLine (roads)) 
 
 (*Helper function to check if road is suitable. Need to consider the 
   whether the road has already been built(both (p1,p2)&&(p2, p1) order)
@@ -80,7 +69,7 @@ let settleablePoint (g:game) : point=
 let buildableRoad (g:game) (pt:point) : line = 
     let occupiedLines = mapRoadList(fun (color,line) -> line) g.gRoadList in 
     let possibleRoads = mapLineList (fun ele -> (pt,ele) ) (adjacent_points pt) in
-    findRoadList (fun ele -> (not) (existsRoad g ele)) possibleRoads
+    findRoadList (fun ele -> (not) (memRoadList ele occupiedLines)) possibleRoads
 
 (**********************************************************************)
 (******              {initial_move helper functions}             ******)
@@ -154,12 +143,13 @@ let initUpdateResources g color : gPlayer =
 (******              {RollDice helper functions}                 ******)
 (**********************************************************************)
 
-(* return (hex,inter) pair list that satisfy the rolled number *)
+(* return (hex,inter) pair list that satisfy the rolled number 
+  and there is no robber on that hex *)
 let rolledHexInterPair (g:game) (roll:roll) : (hex * intersection) list = 
   let interList = g.gInterList in
   snd(
     leftFoldHexList (fun (index, acc) (t, r) -> 
-      if (r = roll) then 
+      if (r = roll && index != g.gRobber) then 
         begin
           let adjacentPointList = piece_corners index in
           let newPair = (leftFoldPointList
@@ -379,77 +369,138 @@ let checkWinner (game:game) : color option =
 (******                         SCRUBBER                         ******)
 (**********************************************************************)
 
+let validRobberMove (game:game) p c: bool = 
+  game.gDiceRolled = None
+
+
+(* CONS: whether the dice has been rolled *)
+let validRollDice (game:game) : bool = game.gDiceRolled = None
+
+(* CONS: player active the trade has enough that kind of resource*)
+let validMariTrade (game:game) (mtrade:maritimetrade) : bool = 
+  let curPlayer = findPlayer game game.gActive in
+  let (sell, buy) = mtrade in
+  let ratio = getMariTradeRatio game sell game.gActive in
+  let origInv = curPlayer.gPInventory in
+  let hasSellAmount = num_resource_in_inventory origInv sell in
+  hasSellAmount >= ratio
+
+(* CONS trade time doesn't exceed or equal to the max number *)
+let validDomesticTrade (game:game) : bool = 
+  game.gTradesMade < cNUM_TRADES_PER_TURN
+
+(* CONS road want to build is suitable and the player has 
+  enough resource for building that road *)
+let validBuildRoad (game:game) (road:road) : bool = 
+  let cost = cCOST_ROAD in
+  let curPlayer = findPlayer game game.gActive in
+  let origInv = curPlayer.gPInventory in
+  (suitableRoad game road) && (greaterThanEqual origInv cost)
+
+(* CONS town want to build is suitable and the player has 
+  enough resource for building that town. *)
+let validBuildTown (game:game) (town:point) : bool = 
+  let cost = cCOST_TOWN in
+  let curPlayer = findPlayer game game.gActive in
+  let origInv = curPlayer.gPInventory in
+  (suitableTown game town) && (greaterThanEqual origInv cost)
+
+(* CONS city want to build is suitable and the player has 
+  enough resource for building that city *)
+let validBuildCity (game:game) (city:point) : bool = 
+  let cost = cCOST_CITY in
+  let curPlayer = findPlayer game game.gActive in
+  let origInv = curPlayer.gPInventory in
+  (suitableCity game city) && (greaterThanEqual origInv cost)
+
+(* CONS the deck is not empty and the cards player already has
+  is less than the max number *)
+let validBuildCard (game:game) : bool = 
+  let curPlayer = findPlayer game game.gActive in
+  match game.gDeck with
+  | Hidden _ -> false
+  | Reveal cList -> 
+    not (checkCardListNull cList) 
+      && (sizeOfCards curPlayer.gPCard) < cMAX_HAND_SIZE
+
+(* CONS: the player should have that card in hand, and the 
+  card action he specific is also valid *)
+let validPlayCard (game:game) (pCard:playcard) : bool = 
+  let card = cardOfPlaycard pCard in
+  let curPlayer = findPlayer game game.gActive in
+  let hasCard = memCards card (curPlayer.gPCard) in
+  match pCard with
+  | PlayKnight (piece, color) -> 
+      hasCard && (validRobberMove game piece color)
+  | PlayRoadBuilding (road1, roadOp) ->
+      hasCard && (suitableRoad game road1) 
+        && (roadOp = None || suitableRoad game (get_some roadOp))
+  | _ -> hasCard
+
+
+
+(* CONS: dice has been rolled *)
+let validEndTurn (game:game) : bool = game.gDiceRolled != None
+
+
+let genMinMove (g:game) (request:request) : move = 
+  failwith "unimplemented"
+
 let scrubMove (game:game) (move:move) : move = 
   let request = game.gNextRequest in 
-  match (move,reqeust) with
-    |InitialMove(pt1,pt2),InitialReQuest ->
-      if validInitialMove(game,pt1,pt2)  
-      then move 
-      else genMinInitialMove game  
-
-    |RobberMove(piece,colorOption),RobberRequest -> 
-      if validRobberMove(game,piece,colorOption)
-      then move 
-      else genMinRobberMove game 
-
-    |DiscardMove(cost),DiscardRequest -> 
-      if validDiscardMove(game,cost) 
-      then move 
-      else genMinDiscardMove game 
-
-                          (*CONSTAINTS:    - Player must be able to afford cost
-
-                           SOLUTIONS      - If player cannot afford cost, then 
-                                            try anothe resource. If player has 
-                                            no resources, d not take anything.*)
-
-    |TradeResponse(resp),TradeRequest  = (*CONSTRAINTS:       - Both players must be able to afford
-                                             the trade 
-
-                        SOLUTIONS:          - If either player cannot afford, 
-                                              set response to FALSE.*)
-
-    |Action(action),ActionRequest=            (*CONSTRAINTS: XIAO MING FILL THIS IN
-                        SOLUTIONS:   XIAO MING FILL THIS IN *) 
-    |_ -> genMinMove g request
-
-
-(*Valid IFF pt1 is unsettled and (pt1,pt2) is an unbuilt and suitable move*)
-let validInitialMove (g:game) (pt1:point) (pt2:point) : bool = 
-  suitableTown g pt1 && not (existsRoad) g (g.gActive,(pt1,pt2))
-
-(*Valid IFF colorOption is adjacent to piece and is not the active player*)
-let validRobberMove (g:game) (piece:piece) (colorOption:color option) : bool = 
-  List.mem colorOption (surroundingcolors g piece) 
-  &&
-  (*Ensure player does not select himself/herself*)
-  (colorOption = None || get_some colorOption <> g.gActive) 
-
-(*Valid IFF the *)
-let validDiscardMove (g:game) (cost:cost) : bool = 
-  let discardingPlayer = findPlayer g g.gNextColor in 
-  validCost (minusCosts discardingPlayer.gPInventory cost)
-
-let genMinInitialMove (g:game) : move = 
-  let settlementPoint = settleablePoint g in 
-  let roadLine = buildableRoad g settleablePoint in 
-  InitialMove(settlementPoint,roadLine)
+  match (move,request) with
+    |InitialMove(pt1,pt2),InitialRequest -> failwith "unimplemented"
+    |RobberMove(piece,colorOption),RobberRequest -> failwith "unimplemented"
+    |DiscardMove(cost),DiscardRequest -> failwith "unimplemented"
+    |TradeResponse(resp),TradeRequest -> failwith "unimplemented"
+    |Action(action),ActionRequest ->
+      begin
+        match action with
+        | RollDice ->  
+          if validRollDice game then move
+          else genMinMove game ActionRequest
+        | MaritimeTrade mtrade -> 
+          if (validMariTrade game mtrade) then move
+          else genMinMove game ActionRequest
+        | DomesticTrade trade -> 
+          if (validDomesticTrade game) then move
+          else genMinMove game ActionRequest
+        | BuyBuild build -> 
+          begin
+            match build with
+            | BuildRoad road -> 
+              if (validBuildRoad game road) then move
+              else genMinMove game ActionRequest
+            | BuildTown town -> 
+              if (validBuildTown game town) then move
+              else genMinMove game ActionRequest
+            | BuildCity city -> 
+              if (validBuildCity game city) then move
+              else genMinMove game ActionRequest
+            | BuildCard -> 
+              if (validBuildCard game) then move
+              else genMinMove game ActionRequest
+          end
+        | PlayCard playcard ->
+          if(validPlayCard game playcard) then move
+          else genMinMove game ActionRequest
+        | EndTurn -> 
+          if(validEndTurn game) then move
+          else genMinMove game ActionRequest
+      end
+    |_ -> genMinMove game request 
 
 
 
 
-let surroundingColors (g:game) (piece:piece) : color option list = 
-  let surroudningInters = piece_corners piece in 
-  List.map (fun ele -> 
-    let settlementOption = nthOfInterList g.gInterList ele in 
-    if settlementOption = None 
-    then None 
-    else Some (fst(get_some settlementOption)) ) surroudningInters
-(*
-let surroundingColorsNoOptions (g:game) (piece:piece) : color list = 
-  let surroundingColorsOptions = surroundingColors g piece in 
-  List.fold_left (fun acc ele -> if ele = None 
-                                 then acc 
-                                 else (get_some ele)::acc) 
-                    [] surroundingColorsOptions
-                    *)
+
+
+
+
+
+
+
+
+
+
+
