@@ -401,19 +401,22 @@ let validDiscardMove (g:game) (cost:cost) : bool =
   validCost (minusCosts discardingPlayer.gPInventory cost)
 
 let genMinInitialMove (g:game) : move = 
-  let settlementPoint = settleablePoint g in 
+  failwith "unimplemented"
+  (* let settlementPoint = settleablePoint g in 
   let roadLine = buildableRoad g settleablePoint in 
-  InitialMove(settlementPoint,roadLine)
+  InitialMove( (settlementPoint,roadLine) )  *)
 
 let genMinRobberMove (g:game) : move = 
-  let piece = Random.int (cMAX_PIECE_NUM) in 
+  failwith "unimplemented"
+  (* let piece = Random.int (cMAX_PIECE_NUM) in 
   let colorOption = pick_random (surroundingColorsNoOptions g piece) in 
-  RobberMove(piece,colorOption) 
+  RobberMove(piece,colorOption)  *)
 
-(* 
+
 let genMinDiscardMove (g:game) : move = 
-  let discardingPlayerColor = g.gNextColor in 
-  let discardingPlayer =  foo in  *)
+  failwith "unimplemented"
+  (* let discardingPlayerColor = g.gNextColor in 
+  let discardingPlayer =  foo in   *)
 
 
 
@@ -494,18 +497,18 @@ let genMinMove (g:game) (request:request) : move =
 let scrubMove (game:game) (move:move) : move = 
   let request = game.gNextRequest in 
   match (move,request) with
-    |InitialMove(pt1,pt2),InitialReQuest ->
-      if validInitialMove(game,pt1,pt2)  
+    |InitialMove(pt1,pt2),InitialRequest ->
+      if validInitialMove game pt1 pt2  
       then move 
       else genMinInitialMove game  
 
     |RobberMove(piece,colorOption),RobberRequest -> 
-      if validRobberMove(game,piece,colorOption)
+      if validRobberMove game piece colorOption
       then move 
       else genMinRobberMove game 
 
     |DiscardMove(cost),DiscardRequest -> 
-      if validDiscardMove(game,cost) 
+      if validDiscardMove game cost 
       then move 
       else genMinDiscardMove game
     |TradeResponse(resp),TradeRequest -> failwith "unimplemented"
@@ -545,101 +548,4 @@ let scrubMove (game:game) (move:move) : move =
           else genMinMove game ActionRequest
       end
     |_ -> genMinMove game request 
-
-
-
-
-<<<<<<< HEAD
-
-
-
-
-
-
-
-
-
-
-
-=======
-  match (move,reqeust) with
-    |InitialMove(pt1,pt2),InitialReQuest ->
-      if validInitialMove(game,pt1,pt2)  
-      then move 
-      else genMinInitialMove game  
-
-    |RobberMove(piece,colorOption),RobberRequest -> 
-      if validRobberMove(game,piece,colorOption)
-      then move 
-      else genMinRobberMove game 
-
-    |DiscardMove(cost),DiscardRequest -> 
-      if validDiscardMove(game,cost) 
-      then move 
-      else genMinDiscardMove game 
-
-                          (*CONSTAINTS:    - Player must be able to afford cost
-
-                           SOLUTIONS      - If player cannot afford cost, then 
-                                            try anothe resource. If player has 
-                                            no resources, d not take anything.*)
-
-    |TradeResponse(resp),TradeRequest  = (*CONSTRAINTS:       - Both players must be able to afford
-                                             the trade 
-
-                        SOLUTIONS:          - If either player cannot afford, 
-                                              set response to FALSE.*)
-
-    |Action(action),ActionRequest=            (*CONSTRAINTS: XIAO MING FILL THIS IN
-                        SOLUTIONS:   XIAO MING FILL THIS IN *) 
-    |_ -> genMinMove g request
-
-
-(*Valid IFF pt1 is unsettled and (pt1,pt2) is an unbuilt and suitable move*)
-let validInitialMove (g:game) (pt1:point) (pt2:point) : bool = 
-  suitableTown g pt1 && not (existsRoad g (g.gActive,(pt1,pt2))) 
-
-(*Valid IFF colorOption is adjacent to piece and is not the active player*)
-let validRobberMove (g:game) (piece:piece) (colorOption:color option) : bool = 
-  List.mem colorOption (surroundingcolors g piece) 
-  &&
-  (*Ensure player does not select himself/herself*)
-  (colorOption = None || get_some colorOption <> g.gActive) 
-
-(*Valid IFF the *)
-let validDiscardMove (g:game) (cost:cost) : bool = 
-  let discardingPlayer = findPlayer g g.gNextColor in 
-  validCost (minusCosts discardingPlayer.gPInventory cost)
-
-let genMinInitialMove (g:game) : move = 
-  let settlementPoint = settleablePoint g in 
-  let roadLine = buildableRoad g settleablePoint in 
-  InitialMove(settlementPoint,roadLine)
-
-let genMinRobberMove (g:game) : move = 
-  let piece = Random.int (cMAX_PIECE_NUM) in 
-  let colorOption = pick_random (surroundingColorsNoOptions g piece) in 
-  RobberMove(piece,colorOption) 
-
-let genMinDiscardMove (g:game) : move = 
-  let discardingPlayerColor = g.gNextColor in 
-  let discardingPlayer =  findPlayer discardingPlayerColor
-
-
-let surroundingColors (g:game) (piece:piece) : color option list = 
-  let surroudningInters = piece_corners piece in 
-  List.map (fun ele -> 
-    let settlementOption = nthOfInterList g.gInterList ele in 
-    if settlementOption = None 
-    then None 
-    else Some (fst(get_some settlementOption)) ) surroudningInters
-
-let surroundingColorsNoOptions (g:game) (piece:piece) : color list = 
-  let surroundingColorsOptions = surroundingColors g piece in 
-  List.fold_left (fun acc ele -> if ele = None 
-                                 then acc 
-                                 else (get_some ele)::acc) 
-                    [] surroundingColorsOptions
-=======
->>>>>>> cd4bd8c5d258161f2f6593bb31063759c15f8cd3
                     
