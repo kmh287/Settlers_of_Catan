@@ -588,3 +588,99 @@ let scrubMove (game:game) (move:move) : move =
       end
     |_ -> genMinMove game request
                     
+(**********************************************************************)
+(******                         TROPHIES                         ******)
+(**********************************************************************)
+
+let checkTrophies (g:game) : game = 
+
+  (*Find the current holder of the largest army trophy*)
+  let findCurrentLAtrophy (g:game) : gPlayer option = 
+    leftFoldPlayerList (fun acc ele -> 
+          if ele.gPLargestarmy 
+          then Some(ele) 
+          else acc) None g.gPlayerList in 
+
+  (*Find the current holder of the largest road trophy*)
+  let findCurrentLRtrophy (g:game) : gPlayer option = 
+    leftFoldPlayerList (fun acc ele -> 
+          if ele.gPLongestroad
+          then Some(ele) 
+          else acc) None g.gPlayerList in 
+
+  (*Find the currnet highest number of knights*)
+  let findCurrentMaxKnights (g:game) : (color*int) = 
+    leftFoldPlayerList (fun acc ele -> 
+          if ele.gPKnights > snd(acc) 
+          then ele.gPColor,ele.gPKnights 
+          else acc) (Blue ,0) g.gPlayerList in 
+
+  (*Find the current length of the longest road*)
+  let findCurrentLongestRoad (g:game) : (color*int) = 
+    leftFoldPlayerList (fun acc ele -> 
+          let roadLength = longest_road ele.gPColor g.gRoadList g.gInterList in
+          if  roadLength > snd(acc) 
+          then ele.gPColor,roadLength 
+          else acc) (Blue ,0) g.gPlayerList in 
+
+  let laHolder = findCurrentLAtrophy g in 
+  let lrHolder = findCurrentLRtrophy g in 
+  let largestArmyTuple = findCurrentMaxKnights g in 
+  let longestRoadTuple = findCurrentLongestRoad g in 
+
+  (*Size of the largest army of the current trophy holder, either 0 or 
+  number greater than cMIN_LARGEST_ARMY*)
+  let laHolderArmySize = 
+       if laHolder = None 
+       then 0 
+       else (get_some laHolder).gPKnights in 
+
+  (*Size of the longest road of the current trophy holder, either 0 or 
+  number greater than cMIN_LONGEST_ROAD*)
+  let lrHolderRoadLength = 
+       if lrHolder = None 
+       then 0
+       else longest_road ((get_some lrHolder).gPColor)  
+                          g.gRoadList 
+                          g.gInterList in 
+
+
+  (*FIRST, update largest army*) 
+  let intermediateGame = 
+      (*Only need to check the largest army against the constnat.*)
+      if (snd(largestArmyTuple) < cMIN_LARGEST_ARMY
+          ||
+         snd(largestArmyTuple) <= laHolderArmySize)
+      then g 
+      else 
+      let adjustedPlayerList =     
+              (*Fold over player list. Swap trophies*)     
+              leftFoldPlayerList (fun acc ele -> 
+              if ele.gPColor = fst(largestArmyTuple)
+              then {ele with gPLargestarmy = true;}::acc
+              else 
+              if ele.gPColor = (get_some laHolder).gPColor 
+              then {ele with gPLargestarmy = false;}::acc
+              else ele::acc) [] g.gPlayerList in 
+              {g with gPlayerList = adjustedPlayerList;} in 
+
+  (*SECOND, update longest road*) 
+  let finalGame = 
+      (*Only need to check the largest army against the constnat.*)
+      if (snd(longestRoadTuple) < cMIN_LONGEST_ROAD
+          ||
+         snd(longestRoadTuple) <= lrHolderRoadLength
+      then g 
+      else 
+      let adjustedPlayerList =     
+              (*Fold over player list. Swap trophies*)     
+              leftFoldPlayerList (fun acc ele -> 
+              if ele.gPColor = fst(longestRoadTuple)
+              then {ele with gPLongestroad = true;}::acc
+              else 
+              if ele.gPColor = (get_some lrHolder).gPColor 
+              then {ele with gPLongestroad = false;}::acc
+              else ele::acc) [] intermediateGame.gPlayerList in 
+              {intermediateGame with gPlayerList = adjustedPlayerList;} in 
+  finalGame 
+              
