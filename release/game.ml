@@ -26,31 +26,31 @@ let handle_InitialMove (g:game) (pt1:point) (pt2:point) : game =
 
          		gPlayerList=(*Only add resources after fifth settlement 
 			                 	is placed*)
-				                if settlementNum <= 4 
+				                if settlementNum <= cNUM_PLAYERS
 				                then g.gPlayerList
-				                else setNthPlayerList 
+				                else (setNthPlayerList 
 				                  (*Index*)
 				                  (findPlayerIndex g g.gActive)
 				                  (*Updated value*)
-				                  (initUpdateResources g (g.gActive))
+				                  (initUpdateResources g (g.gActive) pt1)
 				                  (*List*)
-				                  (g.gPlayerList); 
+				                  (g.gPlayerList)); 
 
           	gNextColor= (*Travel forward during first half of iniital phase
 			              		and at the very end *)
-						            if (settlementNum < 4 || settlementNum >= 8)
+						            if (settlementNum < cNUM_PLAYERS || settlementNum >= (2*cNUM_PLAYERS)) 
 						            then next_turn g.gActive 
 						            (*If already four settlements, go in reverse*)
 						            else prev_turn g.gActive;  
 
     				gActive  	= (*Travel forward during first half of iniital phase
 						            and at the very end *)
-						            if (settlementNum < 4 || settlementNum >= 8)
+						            if (settlementNum < cNUM_PLAYERS || settlementNum >= (2*cNUM_PLAYERS))
 						            then next_turn g.gActive 
 						            (*If already four settlements, go in reverse*)
 						            else prev_turn g.gActive;  
 
-	    		gNextRequest= if settlementNum >= 8 
+	    		gNextRequest= if settlementNum >= (2*cNUM_PLAYERS)
 					              then ActionRequest
 					              (*If fewer than 8 settlements, then still init
 					              phase*)

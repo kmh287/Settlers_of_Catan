@@ -116,6 +116,36 @@ let findPlayerSettlements (g:game) (col:color) : point list =
                                    else acc) [] uncleanIndexList
 
 (*Resource updater FOR INIT PHASE*)
+
+let initUpdateResources g color point : gPlayer = 
+  let pieceList = adjacent_pieces point in 
+  let terrainList = List.map (fun ele -> 
+                                    fst(List.nth g.gHexList ele)) pieceList in 
+    let rec resourceGatherer (tlist:terrain list) (acc:cost) : cost = 
+        match tlist with 
+            |[] -> acc
+            |hd::tl -> let rsource = resource_of_terrain hd  in 
+                       if rsource = None 
+                       (*No resource, then move down the list *)
+                       then resourceGatherer tl acc
+                       (*If there is a resource, add the cost to the acc*)
+                       else let newResources =
+                         map_cost (fun ele -> ele * cRESOURCES_GENERATED_TOWN)
+                                  (single_resource_cost (get_some rsource))in  
+                       (*Call again on tail, with acc + new resources*)
+                       resourceGatherer tl 
+                                    (addCosts acc newResources)  in 
+    let totalNewResources = resourceGatherer terrainList (0,0,0,0,0) in 
+
+    (*Deconstruct player list, then build it again with new resources added*)
+    let player = findPlayer g color in 
+    {player with gPInventory = addCosts player.gPInventory totalNewResources;}
+
+
+
+
+
+(*
 let initUpdateResources g color : gPlayer = 
     (*Map over the list, turn all points that don't belong to color to -1*)
     let indexList = findPlayerSettlements g color in 
@@ -144,7 +174,7 @@ let initUpdateResources g color : gPlayer =
     (*Deconstruct player list, then build it again with new resources added*)
     let player = findPlayer g color in 
     {player with gPInventory = addCosts player.gPInventory totalNewResources;}
-
+*)
 
 (**********************************************************************)
 (******               {robber_move helper functions}             ******)
