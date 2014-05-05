@@ -490,13 +490,15 @@ let validPlayCard (game:game) (pCard:playcard) : bool =
   let card = cardOfPlaycard pCard in
   let curPlayer = findPlayer game game.gActive in
   let hasCard = memCards card (curPlayer.gPCard) in
+  let cardNotPlayed = not game.gCardPlayed in
   match pCard with
   | PlayKnight (piece, color) -> 
-      hasCard && (validRobberMove game piece color)
+      cardNotPlayed && hasCard 
+        && (validRobberMove game piece color)
   | PlayRoadBuilding (road1, roadOp) ->
-      hasCard && (suitableRoad game road1) 
+      cardNotPlayed && hasCard && (suitableRoad game road1) 
         && (roadOp = None || suitableRoad game (get_some roadOp))
-  | _ -> hasCard
+  | _ -> cardNotPlayed && hasCard
 
 (* CONS: dice has been rolled *)
 let validEndTurn (game:game) : bool = game.gDiceRolled != None
