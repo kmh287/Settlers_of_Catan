@@ -146,8 +146,8 @@ let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) (knight:
         let discardColor = get_some colorOption in 
         {
           g with gRobber      = piece;
-                 gNextRequest = DiscardRequest;
-                 gNextColor   = discardColor;
+                 gNextRequest = ActionRequest;
+                 gNextColor   = g.gActive
         }
 
 (*Handle discards due to the robber. A resource is selected at random 
@@ -168,8 +168,10 @@ let handle_DiscardMove (g:game) (cost:cost) : game =
                                 gPInventory = minusCosts discardingPlayerInv cost;}
                               (*List*)
                               (g.gPlayerList); 
-          gNextColor        = g.gActive;
-          gNextRequest      = ActionRequest;
+          gNextColor        = next_color (g.gNextColor); 
+          gNextRequest      = if next_color (g.gNextColor) = g.gActive 
+                              then ActionRequest
+                              else DiscardRequest; 
   } 
 
 let handle_TradeResponse (game:game) (response:bool) : game = 
@@ -217,8 +219,8 @@ let handle_Action (game:game) (action:action) : game outcome =
       gDiceRolled = Some (random_roll ())} in
     if rolledGame.gDiceRolled = Some cROBBER_ROLL then
       (None, {rolledGame with 
-        gNextRequest = RobberRequest;
-        gNextColor = game.gActive;
+        gNextRequest = DiscardRequest;
+        gNextColor = (next_turn game.gActive);
       })
     else
       let updatedGame = generateResource rolledGame in

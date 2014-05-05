@@ -570,19 +570,19 @@ let hidePlayerCards (p:gPlayer) : gPlayer =
 (*Sum up the victory points for the player passed in. 
 *)
 let checkVictoryPointsPlayer (g:game) (p:gPlayer) : int = 
-  checkVictoryPointsColor g getPlayerColor p 
-
+  checkVictoryPointsColor g (getPlayerColor p) 
 
 let checkVictoryPointsColor (g:game) (color:color) : int = 
   let p = findPlayer g color in 
   let vpCards = sizeOfCardList (filterOnCardList 
-                            (fun ele -> ele = VictoryPoint) p.gPCard) in
+                            (fun ele -> ele = VictoryPoint) 
+                                              (cardsToCardList p.gPCard)) in
   let vpTowns = sizeOfInterList (filterOnInterList
-                            (fun ele -> ele = (color,Town)) p.gPCard) in 
+                            (fun ele -> ele = Some(color,Town)) g.gInterList) in 
   let vpCities = sizeOfInterList (filterOnInterList
-                            (fun ele -> ele = (color,City))p.gPCard) in 
-  let vpLargestArmy = if g.gPLargestArmy then 1 else 0 in 
-  let vpLongestroad = if g.gPLongestRoad then 1 else 0 in 
+                            (fun ele -> ele = Some(color,City)) g.gInterList) in 
+  let vpLargestArmy = if p.gPLargestarmy then 1 else 0 in 
+  let vpLongestroad = if p.gPLongestroad then 1 else 0 in 
   (cVP_CARD * vpCards) + 
   (cVP_TOWN * vpTowns) +
   (cVP_CITY * vpCities) + 
