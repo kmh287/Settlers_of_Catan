@@ -361,9 +361,12 @@ let nextTurnGame (game:game) : game =
     gNextRequest = ActionRequest;
   }
 
-(* function used to check whether there is a winner *)
+(*Function to check the winner of the game. If they have  cWIN_CONDITION
+victory points, then they are the winner.*)
 let checkWinner (game:game) : color option = 
-  failwith "checkWin unimplemented"
+  if checkVictoryPointsColor game game.gActive >= cWIN_CONDITION
+  then Some(game.gActive)  
+  else None  
   
 (**********************************************************************)
 (******                         SCRUBBER                         ******)
@@ -669,8 +672,8 @@ let checkTrophies (g:game) : game =
       (*Only need to check the largest army against the constnat.*)
       if (snd(longestRoadTuple) < cMIN_LONGEST_ROAD
           ||
-         snd(longestRoadTuple) <= lrHolderRoadLength
-      then g 
+         snd(longestRoadTuple) <= lrHolderRoadLength) 
+      then intermediateGame
       else 
       let adjustedPlayerList =     
               (*Fold over player list. Swap trophies*)     

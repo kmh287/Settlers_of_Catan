@@ -333,7 +333,6 @@ let existsCardList = List.exists
 
 let mapiCardList = List.mapi
 
-
 let addToCardList ele lst = [ele]@lst 
 
 let appendCardLists = List.append
@@ -354,6 +353,13 @@ let rec memRemoveCardList (p : 'a -> bool) (lst : 'a list) : 'a list =
   match lst with
     | [] -> []
     | h::t -> if p h then t else h::(list_memremove p t)
+
+(*Function to go from cards to card list. Assumes cards are not hidden.
+As long as not called by player, no cards should be hidden*)
+let cardsToCardList (cards:cards) : card list = 
+  match cards with 
+    |Reveal(cardList) -> cardList 
+    |Hidden(_) -> failwith "cardsToCardList called on Hidden."
 
 (**********************************************************************)
 (******              {Cards related helper functions}             ******)
@@ -561,4 +567,25 @@ let getPlayerColor (p:gPlayer) : color = p.gPColor
 let hidePlayerCards (p:gPlayer) : gPlayer = 
   {p with gPCard = hide p.gPCard;}
 
+(*Sum up the victory points for the player passed in. 
+*)
+let checkVictoryPointsPlayer (g:game) (p:gPlayer) : int = 
+  checkVictoryPointsColor g getPlayerColor p 
+
+
+let checkVictoryPointsColor (g:game) (color:color) : int = 
+  let p = findPlayer g color in 
+  let vpCards = sizeOfCardList (filterOnCardList 
+                            (fun ele -> ele = VictoryPoint) p.gPCard) in
+  let vpTowns = sizeOfInterList (filterOnInterList
+                            (fun ele -> ele = (color,Town)) p.gPCard) in 
+  let vpCities = sizeOfInterList (filterOnInterList
+                            (fun ele -> ele = (color,City))p.gPCard) in 
+  let vpLargestArmy = if g.gPLargestArmy then 1 else 0 in 
+  let vpLongestroad = if g.gPLongestRoad then 1 else 0 in 
+  (cVP_CARD * vpCards) + 
+  (cVP_TOWN * vpTowns) +
+  (cVP_CITY * vpCities) + 
+  (cVP_LARGEST_ARMY * vpLargestArmy) + 
+  (cVP_LONGEST_ROAD * vpLongestroad)
 
