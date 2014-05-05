@@ -4,83 +4,6 @@ open Util
 open Print
 include GameUtil
 
-let player_of_gPlayer (gp:gPlayer) : player = 
-  (gp.gPColor, (gp.gPInventory, gp.gPCard), 
-      (gp.gPKnights, gp.gPLongestroad, gp.gPLargestarmy) )
-
-let gPlayer_of_player (p:player) : gPlayer = 
-  match p with
-  | (color, (inventory, cards), (knights, lr, la) ) ->
-    {
-      gPColor           = color;
-      gPInventory       = inventory;
-      gPCard            = cards;
-      gPKnights         = knights;
-      gPLongestroad     = lr;
-      gPLargestarmy     = la;
-    }
-
-let state_of_game (g:game) : state =     
-	(
-		(*Board*)
-		(
-      (g.gHexList,g.gPortList),
-      (g.gInterList,g.gRoadList),
-      g.gDeck,
-		  g.gDiscard, 
-      g.gRobber
-    ),
-
-		(*Player List*)
-		(List.map player_of_gPlayer g.gPlayerList),
-
-		(*Turn *)
-		{
-      active         = g.gActive;
-      dicerolled     = g.gDiceRolled;
-      cardplayed     = g.gCardPlayed;
-      cardsbought    = g.gCardsBought;
-		  tradesmade     = g.gTradesMade;
-      pendingtrade   = g.gPendingTrade;
-    },
-
-		(*Next*) 
-		( 
-      g.gNextColor, 
-      g.gNextRequest
-    )
-	)            
-
-let game_of_state (s:state) : game = 
-  match s with 
-	|(((hl,pl),(il,rl),dk,dc,rb),playerList,tn,(nc,nr))->
-
-		(*Board*)
-		{
-      gHexList 	= hl;
-		  gPortList 	= pl;
-		  gInterList = il;
-		  gRoadList 	= rl;
-		  gDeck 		= dk;
-		  gDiscard 	= dc; 
-		  gRobber 	= rb; 
- 
-		  (*Player List*)
-		  gPlayerList = (List.map gPlayer_of_player playerList);
- 
-		  (*Turn*)
-		  gActive = tn.active;
-		  gDiceRolled = tn.dicerolled;
-		  gCardPlayed = tn.cardplayed;
-		  gCardsBought = tn.cardsbought;
-		  gTradesMade = tn.tradesmade;
-		  gPendingTrade = tn.pendingtrade;
- 
-		  (*Next*)
-		  gNextColor = nc;
-		  gNextRequest = nr;
-		}
-
 
 let init_game () = game_of_state (gen_initial_state())
 
@@ -143,7 +66,7 @@ let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) (knight:
                  gNextRequest = ActionRequest;
         }
   else  
-        let discardColor = get_some colorOption in 
+        (* let discardColor = get_some colorOption in  *)
         {
           g with gRobber      = piece;
                  gNextRequest = ActionRequest;
@@ -168,8 +91,8 @@ let handle_DiscardMove (g:game) (cost:cost) : game =
                                 gPInventory = minusCosts discardingPlayerInv cost;}
                               (*List*)
                               (g.gPlayerList); 
-          gNextColor        = next_color (g.gNextColor); 
-          gNextRequest      = if next_color (g.gNextColor) = g.gActive 
+          gNextColor        = next_turn (g.gNextColor); 
+          gNextRequest      = if next_turn (g.gNextColor) = g.gActive 
                               then ActionRequest
                               else DiscardRequest; 
   } 

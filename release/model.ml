@@ -567,11 +567,6 @@ let getPlayerColor (p:gPlayer) : color = p.gPColor
 let hidePlayerCards (p:gPlayer) : gPlayer = 
   {p with gPCard = hide p.gPCard;}
 
-(*Sum up the victory points for the player passed in. 
-*)
-let checkVictoryPointsPlayer (g:game) (p:gPlayer) : int = 
-  checkVictoryPointsColor g (getPlayerColor p) 
-
 let checkVictoryPointsColor (g:game) (color:color) : int = 
   let p = findPlayer g color in 
   let vpCards = sizeOfCardList (filterOnCardList 
@@ -589,3 +584,11 @@ let checkVictoryPointsColor (g:game) (color:color) : int =
   (cVP_LARGEST_ARMY * vpLargestArmy) + 
   (cVP_LONGEST_ROAD * vpLongestroad)
 
+(*Sum up the victory points for the player passed in. *)
+let checkVictoryPointsPlayer (g:game) (p:gPlayer) : int = 
+  checkVictoryPointsColor g (getPlayerColor p)
+
+
+
+
+  

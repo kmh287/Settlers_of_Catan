@@ -1,7 +1,10 @@
-(* open GameType
-open Model
+open Definition
+open Constant
+open Util
+open Print
+open Game
 open GameUtil
-open Game *)
+open GameType
 
 (**********************************************************************)
 (******                {Game related functions}                  ******)
@@ -121,14 +124,13 @@ let findBestTownLocation (game:game) : int =
   let allSuitable = allSuitableTowns game in
   snd(assignIntersPoints game allSuitable)
 
-
+(* return the best place for building a road *)
+let findBestRoadLocation (game:game) : line = 
+  failwith "unimplemented findBestRoadLocation"
 
 (**********************************************************************)
 (******              {Player related helper functions}           ******)
 (**********************************************************************)
-(* return the victory points of a player *)
-let getVicPoints (game:game) (player:gPlayer) : int = 
-  failwith "unimplemented"
 
 (* return a gPlayer list that surround a certain hex *)
 let getSurroundedPlayer (game:game) (hexIndex:int) : gPlayer list = 
@@ -167,16 +169,93 @@ let findMostDangerousPlayer (game:game) (players:gPlayer list)
   if((List.length players) = 0) then None
   else 
     fst (leftFoldPlayerList (fun (c, max) player -> 
-      let curVicPoints = getVicPoints game player in
+      let curVicPoints = checkVictoryPointsPlayer game player in
       if(curVicPoints > max) 
         then (Some (getPlayerColor player), curVicPoints)
       else (c, max) ) (None, -1) players)
 
 
+(* generate an appropriate robber move *)
+let generateRobberMove (game:game) : robbermove = 
+  let hexIndex = findBestHexWithoutMe game game.gActive in
+  let surroundedPlayers = getSurroundedPlayer game hexIndex in
+  let player = findMostDangerousPlayer game surroundedPlayers in
+  (hexIndex, player)
 
 
 
+(**********************************************************************)
+(******              {Action related helper functions}           ******)
+(**********************************************************************)
+(* return whether there is a robber affecting mine inters *)
+let hasRobberOnMine (game:game) (me:gPlayer) : bool = 
+  let robberPiece = game.gRobber in
+  let affectedPlayers = getSurroundedPlayer game robberPiece in
+  memPlayerList me affectedPlayers
 
+(* check wether the player has a knight card in hand *)
+let hasKnightCard (player:gPlayer) : bool = 
+  memCards Knight player.gPCard
+
+(* return the number of towns of a player *)
+let settlementNumber (game:game) (p:color) : int = 
+  leftFoldInterList (fun acc inter -> 
+    if (inter = Some(p, Town) || inter = Some(p, City)) 
+      then (acc+1) else acc) 0 game.gInterList
+
+(* retrun whether the player has bought a card in current turn *)
+let hasBoughtCard (game:game) : bool = 
+  match game.gCardsBought with
+  | Hidden num -> num > 0
+  | Reveal cList -> (sizeOfCardList cList) > 0
+
+(* genereate actions after cards play phase in a bot *)
+let generateActionAfterCard (game:game) : action = 
+  let me = game.gActive in
+  if(is_none game.gDiceRolled) then RollDice
+  else 
+    if((hasEnoughResBuild (BuildTown 0) (findPlayer game me) )
+        && (settlementNumber game me < 4))
+      then 
+        let town = findBestTownLocation game in
+        BuyBuild (BuildTown(town))
+    else
+      if ((hasEnoughResBuild (BuildRoad (me, (0,0))) (findPlayer game me))
+          && ((settlementNumber game me) >= 4) )
+        then 
+          let line = findBestRoadLocation game in
+          BuyBuild (BuildRoad(me, line))
+      else EndTurn
+
+(* generate appropriate actions *)
+(* => if there is a robber affect myself 
+      1. if have a knight card, use it, move it  
+      according to robber request  criterion
+      2. if don't have a card, buy one if have enough resource
+      use it according to the card type.(In this case, only buy
+      one time no matter what card we get.)
+  => if the dice haven't been rolled, roll the dice
+  => try some trade
+  => build town ==> build city/road according to 
+      some currently unkonw reasons.(Need to figure this out)
+  => end turn after all have been done
+*)
+let generateAction (game:game) : action = 
+  let me = findPlayer game game.gActive in
+    if(not game.gCardPlayed) 
+      then
+        if(hasRobberOnMine game me) 
+          then
+            if(hasKnightCard me) then 
+              let robberMove = generateRobberMove game in
+              PlayCard (PlayKnight robberMove)
+            else 
+              if(not (hasBoughtCard game)) then
+                if(hasEnoughResBuild BuildCard me) then (BuyBuild BuildCard)
+                else generateActionAfterCard game
+              else generateActionAfterCard game
+        else generateActionAfterCard game
+    else generateActionAfterCard game
 
 
 
