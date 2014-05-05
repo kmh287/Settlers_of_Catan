@@ -12,7 +12,14 @@ open GameType
 (* change the state to game type *)
 let game_of_state = game_of_state
 
-
+(* return a gPlayer list that surround a certain hex *)
+let getSurroundedPlayer (game:game) (hexIndex:int) : gPlayer list = 
+  let interList = game.gInterList in
+  List.fold_left (fun acc iIndex -> 
+    match (nthOfInterList interList iIndex) with
+    | Some (c, s) -> (findPlayer game c)::acc
+    | _ -> acc
+  ) [] (piece_corners hexIndex)
 
 (**********************************************************************)
 (******                {Optimization Constants}                  ******)
@@ -32,6 +39,7 @@ let game_of_state = game_of_state
 (**********************************************************************)
 (******              {Build related helper functions}            ******)
 (**********************************************************************)
+
 (* return ture if the player has enough resource to build specify
   item, false if don't *)
 let hasEnoughResBuild (build:build) (player:gPlayer) : bool =  
@@ -50,6 +58,21 @@ let allSuitableTowns (game:game) : int list =
         then (index+1, index::acc)
       else (index+1, acc)) (0, []) game.gInterList
   )
+
+(* return a lists contains all type of resources I already have.
+  One for each hex, which means if I have two woods, then there 
+  will be two wood in the list *)
+let getMineResLists (game:game) (me:gPlayer) : resource list = 
+  snd(leftFoldHexList (fun (index, acc) hex -> 
+    if (memPlayerList me (getSurroundedPlayer game index))
+      then 
+        let (ter, roll) = hex in
+        let res = resource_of_terrain ter in
+        (match res with 
+        | Some r -> (index+1, r::acc)
+        | None -> (index+1, acc))
+    else (index+1, acc)
+  ) (0, []) game.gHexList)
 
 (* if number is 6 or 8 , then 2 point.if 4 or 5 then 1 point,
    else 0 point.  *)
@@ -74,18 +97,22 @@ let assignPointOnRoll (rolls : roll list) : int =
 
 (* Base points: bricks and lumber are more important, 2 points
   for each, the rest are 1 point each. *)
-let assignPointOnTerType (ter : terrain) : int = 
+let assignPointOnTerType (ter : terrain) (mineRes: resource list) : int = 
   match resource_of_terrain ter with
-    | Some Brick | Some Lumber -> 2
-    | Some Wool | Some Ore | Some Grain -> 1
-    | _ -> 0
+  | None -> 0
+  | Some res -> 
+    begin
+      match res with
+      | Brick | Lumber -> if(List.mem res mineRes) then 2 else 3
+      | Wool | Ore | Grain -> if(List.mem res mineRes) then 0 else 1
+    end
 
 (* Give a list of terrain points. 
   Criterion:  If resources are different from each other, 
   give additional 1 points, besides base points. *)
-let assignPointOnTer (ters : terrain list) : int = 
+let assignPointOnTer (ters : terrain list) (mineRes: resource list) : int = 
   let basePoints = List.fold_left 
-  (fun sum ter -> sum + (assignPointOnTerType ter)) 0 ters in
+  (fun sum ter -> sum + (assignPointOnTerType ter mineRes)) 0 ters in
   let noDupPoints = 
     if (List.for_all 
       (fun t -> (List.length (List.filter (fun ter -> ter = t) ters) < 2) )
@@ -103,12 +130,11 @@ let assignPoint (game:game) (index:int) : int =
     [] (adjacent_pieces index) in
   let rollList = mapHexList (fun (ter, r) -> r) adjacentHex in
   let terList = mapHexList (fun (ter, r) -> ter) adjacentHex in
+  let mineRes = getMineResLists game (findPlayer game game.gActive) in
   (* points assigned based on the roll number of adjacent hexes *)
   let rollPoint = assignPointOnRoll rollList in
-  let terPoint = assignPointOnTer terList in
+  let terPoint = assignPointOnTer terList mineRes in
   rollPoint + terPoint
-
-
 
 (* assign points to all the index list, return the index with 
  max point. Pair in the fold represent(index, point) *)
@@ -122,31 +148,29 @@ let assignIntersPoints (game:game) (interIndexList:int list) : (int * int) =
 (* return the best location for settle the next town *)
 let findBestTownLocation (game:game) : int = 
   let allSuitable = allSuitableTowns game in
-  snd(assignIntersPoints game allSuitable)
+  print_string "all suitableTown are ";
+  print_endline (string_of_list (string_of_int) allSuitable);
+  let res = fst(assignIntersPoints game allSuitable) in
+  print_int res; print_endline " as best"; res
 
 (* return the best place for building a road *)
 let findBestRoadLocation (game:game) : line = 
   failwith "unimplemented findBestRoadLocation"
 
+
 (**********************************************************************)
 (******              {Player related helper functions}           ******)
 (**********************************************************************)
 
-(* return a gPlayer list that surround a certain hex *)
-let getSurroundedPlayer (game:game) (hexIndex:int) : gPlayer list = 
-  let interList = game.gInterList in
-  List.fold_left (fun acc iIndex -> 
-    match (nthOfInterList interList iIndex) with
-    | Some (c, s) -> (findPlayer game c)::acc
-    | _ -> acc
-  ) [] (piece_corners hexIndex)
+
 
 (* assign point on a certain hex.
   Criterion: 1. roll number 2. resource type: number of surrounding players*)
 let assignPointOnHex (game:game) (hIndex:int) : int = 
   let (ter, roll) = nthOfHexList game.gHexList hIndex in
   let rollPoint = assignPointOnRollNumber roll in
-  let terPoint = assignPointOnTerType ter in
+  let mineRes = getMineResLists game (findPlayer game game.gActive) in
+  let terPoint = assignPointOnTerType ter mineRes in
   rollPoint + terPoint
 
 (* return the best inter without myself around on the board *)
@@ -181,6 +205,7 @@ let generateRobberMove (game:game) : robbermove =
   let surroundedPlayers = getSurroundedPlayer game hexIndex in
   let player = findMostDangerousPlayer game surroundedPlayers in
   (hexIndex, player)
+
 
 
 

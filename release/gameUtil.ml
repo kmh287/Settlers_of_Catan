@@ -17,8 +17,19 @@ let all_adjacent_curColor_road (g:game) (pt:point) : road list =
 let existsRoad (g:game) (road:road) : bool = 
   let (c, (p1, p2)) = road in
   let revRoad = (c, (p2, p1)) in
-  not( memRoadList road g.gRoadList) 
-  && not (memRoadList revRoad g.gRoadList)
+  let res = (memRoadList road g.gRoadList) 
+    || (memRoadList revRoad g.gRoadList) in
+  if (res) 
+    then 
+    begin
+      print_endline "existsRoad"; 
+      res;
+    end
+  else 
+    begin
+      print_endline "not existsRoad";
+      res;
+    end
 
 (*Helper function to check if road is suitable. Need to consider the 
   whether the road has already been built(both (p1,p2)&&(p2, p1) order)
@@ -37,9 +48,23 @@ is not town already exists on that point and there are no town that is
 adjacent to it in one road length, return false if not valid *) 
 let suitableTown (g:game) (town:point) : bool = 
   let interList = g.gInterList in
-  (nthOfInterList interList town = None) && 
+  let res = (nthOfInterList interList town = None) && 
   (forAllLineList (fun p -> (nthOfInterList interList p) = None) 
-    (adjacent_points town) )
+    (adjacent_points town) ) in
+  if (res) 
+    then 
+    begin
+      print_int town;
+      print_endline " is suitable Town";
+      res;
+    end
+  else 
+    begin
+      print_int town;
+      print_endline " is not suitableTown";
+      res;
+    end
+    
 
 (* Helper function used to check whether building a city on a point is
 valid. Need to check that there is already a town on that point and
@@ -152,6 +177,9 @@ let rolledHexInterPair (g:game) (roll:roll) : (hex * intersection) list =
       if (r = roll && index != g.gRobber) then 
         begin
           let adjacentPointList = piece_corners index in
+          print_int index; print_endline " hex been rolled";
+          print_string (string_of_list string_of_int adjacentPointList);
+          print_endline " is adjacent_points";
           let newPair = (leftFoldPointList
             (fun pairs point -> 
               ((t, r), (nthOfInterList interList point))::pairs) 
@@ -172,7 +200,7 @@ let addResToPlayer (game:game) ((hex, inter):(hex * intersection)):game =
       let curBaseRes = single_resource_cost res in 
       let curAddRes = multiRes 
         (settlement_num_resources settlement) curBaseRes in
-      let curPlayer = findPlayer game game.gActive in
+      let curPlayer = findPlayer game color in
       let newInv = addCosts curAddRes curPlayer.gPInventory in
       let newPlayer = {curPlayer with gPInventory = newInv} in
       updatePlayer game newPlayer
