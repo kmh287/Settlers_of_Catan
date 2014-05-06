@@ -1,10 +1,10 @@
-(* open Definition
+open Definition
 open Constant
 open Util
 open Print
 open Game
 open GameUtil
-open GameType *)
+open GameType
 
 (**********************************************************************)
 (******                {Game related functions}                  ******)
