@@ -69,6 +69,7 @@ let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) (knight:
         }
   else  
         let discardingColor = get_some colorOption in 
+        let discardingPlayer = findPlayer g discardingColor in
         let cost = stealRandomResource g discardingColor in 
         {
           g with gRobber      = piece;
@@ -77,7 +78,8 @@ let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) (knight:
                               (findPlayerIndex g discardingColor) 
                               (*Updated value*)
                               {discardingPlayer with 
-                                gPInventory = minusCosts discardingPlayerInv cost;}
+                                gPInventory = 
+                                  minusCosts discardingPlayer.gPInventory cost;}
                               (*List*)
                               (g.gPlayerList); 
                  gNextRequest = ActionRequest;

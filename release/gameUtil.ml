@@ -183,7 +183,7 @@ let initUpdateResources g color : gPlayer =
 (*Generate a single resource cost for the robber. Return (0,0,0,0,0) if 
 the player is entirely broke*)
 
-let stealRandomresource (g:game) (color:color) : cost = 
+let stealRandomResource (g:game) (color:color) : cost = 
   let p = findPlayer g color in 
   if sum_cost p.gPInventory = 0 then (0,0,0,0,0) 
   else
@@ -526,10 +526,12 @@ let genMinRobberMove (g:game) : move =
 has at least 1 of*)
 let genMinDiscardMove (g:game) : move = 
   let discardingPlayer =  findPlayer g g.gNextColor in
-  let resource = firstAvailableResource discardingPlayer.gPInventory in
-  if resource = None
+  if sum_cost discardingPlayer.gPInventory <= cMAX_HAND_SIZE
   then DiscardMove((0,0,0,0,0)) 
-  else DiscardMove( single_resource_cost (get_some resource) ) 
+  else let cost = discardHelper discardingPlayer.gPInventory (0,0,0,0,0) 
+                    ((sum_cost discardingPlayer.gPInventory) / 2) in 
+  DiscardMove(cost) 
+
 
 (* CONS: whether the dice has been rolled *)
 let validRollDice (game:game) : bool = game.gDiceRolled = None
