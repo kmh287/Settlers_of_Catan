@@ -891,7 +891,7 @@ let checkTrophies (g:game) : game =
 
                           longest_road 
                           lrColor  
-                          filterOnRoadList (fun x -> fst(x) = lrColor) g.gRoadList 
+                          (filterOnRoadList (fun x -> fst(x) = lrColor) g.gRoadList) 
                           g.gInterList in 
 
 
