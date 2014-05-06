@@ -38,21 +38,29 @@ let handle_InitialMove (g:game) (pt1:point) (pt2:point) : game =
 
           	gNextColor= (*Travel forward during first half of iniital phase
 			              		and at the very end *)
-						            if (settlementNum < cNUM_PLAYERS || settlementNum >= (2*cNUM_PLAYERS)) 
+						            if settlementNum < cNUM_PLAYERS 
 						            then next_turn g.gActive 
-                        else if settlementNum = cNUM_PLAYERS
+                        else 
+                        if settlementNum = cNUM_PLAYERS
                         then g.gActive   
 						            (*If already five settlements, go in reverse*)
-						            else prev_turn g.gActive;  
+						            else 
+                        if settlementNum = (2*cNUM_PLAYERS) 
+                        then g.gActive 
+                        else prev_turn g.gActive;  
 
     				gActive  	= (*Travel forward during first half of iniital phase
 						            and at the very end *)
-						            if (settlementNum < cNUM_PLAYERS || settlementNum >= (2*cNUM_PLAYERS))
+						            if settlementNum < cNUM_PLAYERS 
 						            then next_turn g.gActive 
-                        else if settlementNum = cNUM_PLAYERS
+                        else 
+                        if settlementNum = cNUM_PLAYERS
                         then g.gActive   
 						            (*If already four settlements, go in reverse*)
-						            else prev_turn g.gActive;  
+						            else 
+                        if settlementNum = (2*cNUM_PLAYERS) 
+                        then g.gActive 
+                        else prev_turn g.gActive;  
 
 	    		gNextRequest= if settlementNum >= (2*cNUM_PLAYERS)
 					              then ActionRequest
