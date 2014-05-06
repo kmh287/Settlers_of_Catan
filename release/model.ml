@@ -425,6 +425,9 @@ let minusCosts (cost1:cost) (cost2:cost) : cost =
 let validCost ((b,w,o,g,l):cost) : bool = 
 (b >= 0) && (w >= 0)  && (o >= 0) && (g >= 0) && (l >= 0) 
 
+let costToList ((b,w,o,g,l):cost) : int list = 
+  [b;w;o;g;l]
+
 
 (*Return the first resource in this cost that is greater than zero. None if 
 all are 0*) 
