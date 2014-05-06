@@ -42,7 +42,7 @@ module Bot = functor (S : Soul) -> struct
         InitialMove(townLoc, List.hd (adjacent_points townLoc ))
       | RobberRequest -> 
           RobberMove(generateRobberMove game)
-      | DiscardRequest-> DiscardMove(0,0,0,0,0)
+      | DiscardRequest-> genDiscardMove game
       | TradeRequest -> 
         (* reject trade request from most dangerous player, simply 
         accept all the oter trade request. Haven't thought about 

@@ -29,9 +29,18 @@ let getSurroundedPlayer (game:game) (hexIndex:int) : gPlayer list =
 
 
 (**********************************************************************)
-(******              {Initial phase helper functions}            ******)
+(******              {Discard phase helper functions}            ******)
 (**********************************************************************)
-
+let genDiscardMove (g:game) : move = 
+  let discardingPlayer =  findPlayer g g.gNextColor in
+  if sum_cost discardingPlayer.gPInventory <= cMAX_HAND_SIZE
+  then (
+    (* print_endline "no discard"; *)
+       DiscardMove((0,0,0,0,0)) )
+  else (let cost = discardHelper discardingPlayer.gPInventory (0,0,0,0,0) 
+                    ((sum_cost discardingPlayer.gPInventory) / 2) in
+  (* print_string ("discarding: " ^ string_of_cost cost ^ "\n"); *)
+  DiscardMove(cost))
 
 
 
@@ -159,19 +168,20 @@ let assignIntersPoints (game:game) (interIndexList:int list) : (int * int) =
 (* return the best location for settle the next town *)
 let findBestTownLocation (game:game) : int = 
   let allSuitable = allSuitableTowns game in
-  print_string "all suitableTown are ";
-  print_endline (string_of_list (string_of_int) allSuitable);
+  (* print_string "all suitableTown are ";
+  print_endline (string_of_list (string_of_int) allSuitable); *)
   let res = fst(assignIntersPoints game allSuitable) in
-  print_int res; print_endline " as best"; res
+  (* print_int res; print_endline " as best";  *)
+  res
 
 
 (* return the best place for building a road *)
 let findBestRoadLocation (game:game) : line = 
   let tempRes = findMaxLenEnd game game.gActive in
-  print_string "road end point is "; print_int (fst tempRes);
+  (* print_string "road end point is "; print_int (fst tempRes);
   print_endline "";
   print_string "current max length is  "; print_int (snd tempRes); 
-  print_endline "";
+  print_endline ""; *)
   get_some (buildableRoad game (fst tempRes))
  
 
@@ -269,12 +279,10 @@ let hasBoughtCard (game:game) : bool =
 
 
 
-
-
 (* return the color of a player with the max amount of certain resource.
   If all player don't have that resource, return None *)
 let findPlayerWithMaxRes (game:game) (res:resource) : color option = 
-  print_endline ("wanted resource is " ^ (string_of_resource res));
+  (* print_endline ("wanted resource is " ^ (string_of_resource res)); *)
   let me = game.gActive in
   let pList = game.gPlayerList in
   let res = leftFoldPlayerList (fun (color, max) player -> 
@@ -285,7 +293,8 @@ let findPlayerWithMaxRes (game:game) (res:resource) : color option =
   ) (next_turn me, 0) pList in
   if(snd res = 0) then None 
   else 
-    (print_endline ("player with max is " ^ string_of_color (fst res));
+    (
+      (* print_endline ("player with max is " ^ string_of_color (fst res)); *)
     Some (fst res))
 
 
@@ -360,7 +369,7 @@ let findWantedResource (game:game) : resource option =
     (* else minSum (minSum deltaTown deltaCity) (minSum deltaRoad deltaCard) *)
   else minSum (minSum deltaTown deltaCity) deltaRoad 
   in
-  print_endline ("wanted delta cost" ^ (string_of_cost minCost));
+  (* print_endline ("wanted delta cost" ^ (string_of_cost minCost)); *)
   maxResInCost minCost
 
 
@@ -389,7 +398,8 @@ let generateActionAfterCard (game:game) : action =
   if(is_none game.gDiceRolled) then RollDice
   else 
     if((hasEnoughResBuild (BuildTown 0) mePlayer )
-        && (settlementNumber game me < 4))
+        && (settlementNumber game me < 4
+          || (checkVictoryPointsBot game mePlayer) > 5 ))
       then
         let town = findBestTownLocation game in
         BuyBuild (BuildTown(town))

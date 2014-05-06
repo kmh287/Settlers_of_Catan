@@ -24,12 +24,12 @@ let existsRoad (g:game) (road:road) : bool =
   if (res) 
     then 
     begin
-      print_endline "existsRoad"; 
+      (* print_endline "existsRoad";  *)
       res;
     end
   else 
     begin
-      print_endline "not existsRoad";
+      (* print_endline "not existsRoad"; *)
       res;
     end
 
@@ -108,11 +108,17 @@ let settleablePoint (g:game) : point=
 
 (*Function to return an unoccupied line with one end at pt *)
 let buildableRoad (g:game) (pt:point) : line option = 
-    let occupiedLines = mapRoadList(fun (color,line) -> line) g.gRoadList in 
-    let possibleRoads = mapLineList (fun ele -> (pt,ele) ) (adjacent_points pt) in
-    let res = filterOnRoadList 
-      (fun ele -> (not) (memRoadList ele occupiedLines)) possibleRoads in
-    if(List.length res = 0) then None else Some (List.hd res)
+  let ascendingLine (p1, p2) = 
+    if(p1 < p2) then (p1, p2) else (p2, p1)
+  in
+  (* make road always in ascending order *)
+  let occupiedLines = mapRoadList 
+    (fun (c, line) -> (ascendingLine line)) g.gRoadList in
+  let possibleRoads = mapLineList (fun ele -> (pt,ele) ) (adjacent_points pt) in
+  let res = filterOnRoadList 
+    (fun ele -> 
+      (not) (List.mem (ascendingLine ele) occupiedLines)) possibleRoads in
+  if(List.length res = 0) then None else Some (List.hd res)
 
 (**********************************************************************)
 (******              {initial_move helper functions}             ******)
@@ -207,9 +213,9 @@ let stealRandomResource (g:game) (color:color) : cost =
   else
   let invList = costToList p.gPInventory in 
   let availableResources = List.mapi 
-                      (fun i ele -> if ele > 0 then i else 0) invList in
+                      (fun i ele -> if ele > 0 then i else -1) invList in
   (*Remove zeros*) 
-  let filteredList = List.filter (fun ele -> ele > 0) availableResources in 
+  let filteredList = List.filter (fun ele -> ele >= 0) availableResources in 
   match pick_random filteredList with 
   |Some(0) -> (1,0,0,0,0) 
   |Some(1) -> (0,1,0,0,0)
@@ -244,9 +250,9 @@ let rolledHexInterPair (g:game) (roll:roll) : (hex * intersection) list =
       if (r = roll && index != g.gRobber) then 
         begin
           let adjacentPointList = piece_corners index in
-          print_int index; print_endline " hex been rolled";
+          (* print_int index; print_endline " hex been rolled";
           print_string (string_of_list string_of_int adjacentPointList);
-          print_endline " is adjacent_points";
+          print_endline " is adjacent_points"; *)
           let newPair = (leftFoldPointList
             (fun pairs point -> 
               ((t, r), (nthOfInterList interList point))::pairs) 
@@ -550,11 +556,12 @@ has at least 1 of*)
 let genMinDiscardMove (g:game) : move = 
   let discardingPlayer =  findPlayer g g.gNextColor in
   if sum_cost discardingPlayer.gPInventory <= cMAX_HAND_SIZE
-  then (print_endline "no discard";
+  then (
+    (* print_endline "no discard"; *)
        DiscardMove((0,0,0,0,0)) )
   else (let cost = discardHelper discardingPlayer.gPInventory (0,0,0,0,0) 
                     ((sum_cost discardingPlayer.gPInventory) / 2) in
-  print_string ("discarding: " ^ string_of_cost cost ^ "\n");
+  (* print_string ("discarding: " ^ string_of_cost cost ^ "\n"); *)
   DiscardMove(cost))
 
 
@@ -820,10 +827,10 @@ let findMaxLenEnd (game:game) (me:color) : (point*int) =
           then (p, length) else (maxP, maxLen)
     ) (0, -1) maxEndList
   in
-  print_endline ("cur color is " ^ (string_of_color me));
+  (* print_endline ("cur color is " ^ (string_of_color me));
   print_string "length is "; print_int (snd tempRes);
   print_string "  end is "; print_int (fst tempRes);
-  print_endline "";
+  print_endline ""; *)
   tempRes
 
 
@@ -855,9 +862,9 @@ let checkTrophies (g:game) : game =
     leftFoldPlayerList (fun acc ele -> 
           (* let roadLength = longest_road ele.gPColor g.gRoadList g.gInterList in *)
           let roadLength = snd (findMaxLenEnd g ele.gPColor) in
-          print_endline ("cur color is " ^ (string_of_color ele.gPColor));
+          (* print_endline ("cur color is " ^ (string_of_color ele.gPColor));
           print_string "length is "; print_int roadLength;
-          print_endline "";
+          print_endline ""; *)
           if  roadLength > snd(acc) 
             then (ele.gPColor,roadLength)
           else acc) (Blue ,0) g.gPlayerList in 
