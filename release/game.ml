@@ -80,20 +80,31 @@ let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) (knight:
   else  
         let discardingColor = get_some colorOption in 
         let discardingPlayer = findPlayer g discardingColor in
+        let curPlayer = findPlayer g g.gActive in
         let cost = stealRandomResource g discardingColor in 
+        let gMinusPlayerList = setNthPlayerList 
+            (*Index*)
+            (findPlayerIndex g discardingColor) 
+            (*Updated value*)
+            {discardingPlayer with 
+              gPInventory = 
+                minusCosts discardingPlayer.gPInventory cost;}
+            (*List*)
+            (g.gPlayerList) in
+        let gAddAndMiusPlayerList = setNthPlayerList 
+            (*Index*)
+            (findPlayerIndex g g.gActive) 
+            (*Updated value*)
+            {curPlayer with 
+              gPInventory = 
+                addCosts curPlayer.gPInventory cost;}
+            (*List*)
+            (gMinusPlayerList) in   
         {
           g with gRobber      = piece;
-          gPlayerList         = setNthPlayerList 
-                              (*Index*)
-                              (findPlayerIndex g discardingColor) 
-                              (*Updated value*)
-                              {discardingPlayer with 
-                                gPInventory = 
-                                  minusCosts discardingPlayer.gPInventory cost;}
-                              (*List*)
-                              (g.gPlayerList); 
-                 gNextRequest = ActionRequest;
-                 gNextColor   = g.gActive
+          gPlayerList         = gAddAndMiusPlayerList; 
+          gNextRequest        = ActionRequest;
+          gNextColor          = g.gActive
         }
 
 (*Handle discards due to the robber. A resource is selected at random 

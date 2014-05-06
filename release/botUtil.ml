@@ -203,8 +203,9 @@ let assignPointOnHex (game:game) (hIndex:int) : int =
 let findBestHexWithoutMe (game:game) (me:color) : int = 
   let hexList = game.gHexList in
   let hexIndexWithoutMe = snd (leftFoldHexList (fun (index, acc) hex -> 
-    if(List.mem (findPlayer game me) 
-      (getSurroundedPlayer game index)) then (index+1, acc)
+    let pList = getSurroundedPlayer game index in
+    if(List.length pList = 0 
+      || List.mem (findPlayer game me) pList) then (index+1, acc)
     else (index+1, index::acc)
   ) (0, []) hexList) in
   fst (List.fold_left (fun (maxIndex, max) hIndex -> 
@@ -286,20 +287,38 @@ let findPlayerWithMaxRes (game:game) (res:resource) : color option =
   Condition, sum_cost > 4 *)
 let hasEnoughResTrade (game:game) : bool = 
   let mePlayer = findPlayer game game.gActive in
-  let inv = mePlayer.gPInventory in
-  sum_cost inv >= 4
+  let myInv = mePlayer.gPInventory in
+  let lst = costToPairList myInv in
+  let mineResMax = 
+    snd (List.fold_left (fun (maxRes, max) (res, num) -> 
+      if(num > max) then (res, num) 
+      else (maxRes, max)) (Grain, 0) lst ) 
+  in
+  sum_cost myInv >= 4 && mineResMax > 1
+
 
 (* find mine current max resource type *)
-let findMineMaxResNotWanted (game:game) (wanted:resource) : resource = 
+let findMineMaxResNotWanted (game:game) (wanted:resource) : (resource*int) = 
   let me = game.gActive in
   let mePlayer = findPlayer game me in
   let myInv = mePlayer.gPInventory in
   let lst = costToPairList myInv in
-  fst(List.fold_left (fun (maxRes, max) (res, num) -> 
+  (List.fold_left (fun (maxRes, max) (res, num) -> 
     if(res = wanted) then (maxRes, max)
     else 
       if(num > max) then (res, num) 
       else (maxRes, max)) (Grain, 0) lst )
+
+
+(* return wether has enough resource for maritime trade.
+  Max resource in hand beside wanted resource exceed trade ratio+1*)
+let hasEnoughResMariTrade (game:game) (wanted:resource) :bool = 
+  let me = game.gActive in
+  let ratio = getMariTradeRatio game wanted me in
+  let numHas = snd (findMineMaxResNotWanted game wanted) in
+  numHas > ratio + 1
+
+
 
 
 (* generate domestic trade request *)
@@ -331,7 +350,7 @@ let findWantedResource (game:game) : resource =
       else (maxRes, max)) (Grain, 0) lst )
   in
   let minCost = 
-    if(settleNumber < 4) then minSum deltaTown deltaCity
+    if(settleNumber < 4) then deltaTown
     else minSum (minSum deltaTown deltaCity) (minSum deltaRoad deltaCard)
   in
   maxResInCost minCost
@@ -345,7 +364,7 @@ let generateActionAfterCard (game:game) : action =
   else 
     if((hasEnoughResBuild (BuildTown 0) mePlayer )
         && (settlementNumber game me < 4))
-      then 
+      then
         let town = findBestTownLocation game in
         BuyBuild (BuildTown(town))
     else
@@ -359,7 +378,7 @@ let generateActionAfterCard (game:game) : action =
         && game.gTradesMade < cNUM_TRADES_PER_TURN)
           then 
             let color = get_some playerWithMax in
-            let sell = findMineMaxResNotWanted game wantedRes in
+            let sell = fst (findMineMaxResNotWanted game wantedRes) in
             DomesticTrade 
             (color, (single_resource_cost sell), 
                     (single_resource_cost wantedRes)      ) 
