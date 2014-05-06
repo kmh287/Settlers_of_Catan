@@ -8,6 +8,24 @@ open BotUtil
 (** Give your bot a 2-20 character name. *)
 let name = "mybot"
 
+type weights = {
+mutable turnNum         : int; 
+mutable brickPoints     : int; 
+mutable woolPoints      : int;
+mutable orePoints       : int; 
+mutable grainPoints     : int;
+mutable lumberPoints    : int; 
+mutable noDupPoints     : int;   
+}
+
+let weightRecord = {
+  turnNum       = 0;
+  brickPoints   = 2;
+  woolPoints    = 1;
+  orePoints     = 1;
+  grainPoints   = 1;
+  lumberPoints  = 2;
+  }
 
 module Bot = functor (S : Soul) -> struct
   (* If you use side effects, start/reset your bot for a new game *)
