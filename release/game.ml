@@ -106,9 +106,12 @@ let handle_DiscardMove (g:game) (cost:cost) : game =
                                 gPInventory = minusCosts discardingPlayerInv cost;}
                               (*List*)
                               (g.gPlayerList); 
-          gNextColor        = next_turn (g.gNextColor); 
-          gNextRequest      = if g.gNextColor = g.gActive 
-                              then ActionRequest
+          gNextColor        = if discardingColor = g.gActive;
+                              then g.gActive  
+                              else next_turn discardingColor;
+
+          gNextRequest      = if discardingColor = g.gActive 
+                              then RobberRequest 
                               else DiscardRequest; 
   } 
 
