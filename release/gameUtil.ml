@@ -180,6 +180,25 @@ let initUpdateResources g color : gPlayer =
 (******               {robber_move helper functions}             ******)
 (**********************************************************************)
 
+(*Generate a single resource cost for the robber. Return (0,0,0,0,0) if 
+the player is entirely broke*)
+
+let stealRandomresource (g:game) (color:color) : cost = 
+  let p = findPlayer g color in 
+  if sum_cost p.gPInventory = 0 then (0,0,0,0,0) 
+  else
+  let invList = costToList p.gPInventory in 
+  let availableResources = List.mapi 
+                      (fun i ele -> if ele > 0 then i else 0) invList in
+  (*Remove zeros*) 
+  let filteredList = List.filter (fun ele -> ele > 0) availableResources in 
+  match pick_random filteredList with 
+  |Some(0) -> (1,0,0,0,0) 
+  |Some(1) -> (0,1,0,0,0)
+  |Some(2) -> (0,0,1,0,0) 
+  |Some(3) -> (0,0,0,1,0) 
+  |Some(4) -> (0,0,0,0,1) 
+  |_ -> failwith "stealRandomResource called on invalid inputs" 
 
 
 (**********************************************************************)
@@ -430,6 +449,32 @@ let checkWinner (game:game) : color option =
 (******                         SCRUBBER                         ******)
 (**********************************************************************)
 
+
+(*Given an inventory, an accumulator (0,0,0,0,0) and an amt
+to reduce the iventory by. Reduce the inventory witohut 
+moving the player into the negative*)
+let rec discardHelper (inv:cost) (costAcc:cost)  (amt:int) : cost = 
+  if sum_cost costAcc = amt 
+  then costAcc 
+  else 
+  let invList = costToList inv in 
+  let availableResources = List.mapi 
+                      (fun i ele -> if ele > 0 then i else -1) invList in
+  (*Remove zeros*) 
+  let filteredList = List.filter (fun ele -> ele >= 0) availableResources in 
+  match pick_random filteredList with 
+  |Some(0) -> discardHelper (minusCosts inv (1,0,0,0,0)) 
+                            (addCosts costAcc (1,0,0,0,0)) amt 
+  |Some(1) -> discardHelper (minusCosts inv (0,1,0,0,0)) 
+                            (addCosts costAcc (0,1,0,0,0)) amt 
+  |Some(2) -> discardHelper (minusCosts inv (0,0,1,0,0)) 
+                            (addCosts costAcc (0,0,1,0,0)) amt 
+  |Some(3) -> discardHelper (minusCosts inv (0,0,0,1,0)) 
+                            (addCosts costAcc (0,0,0,1,0)) amt 
+  |Some(4) -> discardHelper (minusCosts inv (0,0,0,0,1)) 
+                            (addCosts costAcc (0,0,0,0,1)) amt 
+  |_ -> failwith "discardHelper called on invalid inputs" 
+
 let surroundingColors (g:game) (piece:piece) : color option list = 
   let surroudningInters = piece_corners piece in 
   List.map (fun ele -> 
@@ -459,7 +504,7 @@ let validRobberMove (g:game) (piece:piece) (colorOption:color option) : bool =
 (*Valid IFF the player can afford the discard *)
 let validDiscardMove (g:game) (cost:cost) : bool = 
   let discardingPlayer = findPlayer g g.gNextColor in 
-  sum_cost cost = 1 
+  sum_cost discardingPlayer.gPInventory > cMAX_HAND_SIZE 
   && 
   validCost (minusCosts discardingPlayer.gPInventory cost)
 

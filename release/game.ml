@@ -40,7 +40,9 @@ let handle_InitialMove (g:game) (pt1:point) (pt2:point) : game =
 			              		and at the very end *)
 						            if (settlementNum < cNUM_PLAYERS || settlementNum >= (2*cNUM_PLAYERS)) 
 						            then next_turn g.gActive 
-						            (*If already four settlements, go in reverse*)
+                        else if settlementNum = 4 
+                        then g.gActive   
+						            (*If already five settlements, go in reverse*)
 						            else prev_turn g.gActive;  
 
     				gActive  	= (*Travel forward during first half of iniital phase
@@ -66,9 +68,18 @@ let handle_RobberMove (g:game) (piece:piece) (colorOption:color option) (knight:
                  gNextRequest = ActionRequest;
         }
   else  
-        (* let discardColor = get_some colorOption in  *)
+        let discardingColor = get_some colorOption in 
+        let cost = stealRandomResource g discardingColor in 
         {
           g with gRobber      = piece;
+          gPlayerList         = setNthPlayerList 
+                              (*Index*)
+                              (findPlayerIndex g discardingColor) 
+                              (*Updated value*)
+                              {discardingPlayer with 
+                                gPInventory = minusCosts discardingPlayerInv cost;}
+                              (*List*)
+                              (g.gPlayerList); 
                  gNextRequest = ActionRequest;
                  gNextColor   = g.gActive
         }
