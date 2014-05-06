@@ -40,7 +40,7 @@ let handle_InitialMove (g:game) (pt1:point) (pt2:point) : game =
 			              		and at the very end *)
 						            if (settlementNum < cNUM_PLAYERS || settlementNum >= (2*cNUM_PLAYERS)) 
 						            then next_turn g.gActive 
-                        else if settlementNum = 4 
+                        else if settlementNum = cNUM_PLAYERS
                         then g.gActive   
 						            (*If already five settlements, go in reverse*)
 						            else prev_turn g.gActive;  
@@ -49,6 +49,8 @@ let handle_InitialMove (g:game) (pt1:point) (pt2:point) : game =
 						            and at the very end *)
 						            if (settlementNum < cNUM_PLAYERS || settlementNum >= (2*cNUM_PLAYERS))
 						            then next_turn g.gActive 
+                        else if settlementNum = cNUM_PLAYERS
+                        then g.gActive   
 						            (*If already four settlements, go in reverse*)
 						            else prev_turn g.gActive;  
 
@@ -105,7 +107,7 @@ let handle_DiscardMove (g:game) (cost:cost) : game =
                               (*List*)
                               (g.gPlayerList); 
           gNextColor        = next_turn (g.gNextColor); 
-          gNextRequest      = if next_turn (g.gNextColor) = g.gActive 
+          gNextRequest      = if g.gNextColor = g.gActive 
                               then ActionRequest
                               else DiscardRequest; 
   } 

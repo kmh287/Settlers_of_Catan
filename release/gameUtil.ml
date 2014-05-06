@@ -31,6 +31,18 @@ let existsRoad (g:game) (road:road) : bool =
       res;
     end
 
+(*Helper function to check whether or not a road is actually valid.
+Returns True if this road exists in the game, occupied or nbot, and false
+if the road si impossible*)
+
+let validRoadLine (line:line) : bool = 
+  match line with 
+  |(pt1,pt2) -> List.mem pt2 (adjacent_points pt1) 
+
+let validRoad (road:road) : bool =
+  match road with 
+  |(_,line) -> validRoadLine line 
+
 (*Helper function to check if road is suitable. Need to consider the 
   whether the road has already been built(both (p1,p2)&&(p2, p1) order)
   and whether this new road is connect to a exsiting road belongs to the
@@ -41,7 +53,9 @@ let suitableRoad (g:game) (road:road) : bool =
     combined list, but doesn't matter *)
   let adjacentRoads = appendRoadLists 
     (all_adjacent_curColor_road g p1) (all_adjacent_curColor_road g p2) in
-  not (existsRoad g road) && existsRoadList (existsRoad g) adjacentRoads
+  not (existsRoad g road) 
+  && existsRoadList (existsRoad g) adjacentRoads
+  && validRoad road 
 
 (* Helper function to check if town is valid, need to consider if there 
 is not town already exists on that point and there are no town that is 
@@ -492,7 +506,9 @@ let surroundingColorsNoOptions (g:game) (piece:piece) : color list =
 
 (*Valid IFF pt1 is unsettled and (pt1,pt2) is an unbuilt and suitable move*)
 let validInitialMove (g:game) (pt1:point) (pt2:point) : bool = 
-  suitableTown g pt1 && not (existsRoad g (g.gActive,(pt1,pt2)))
+  suitableTown g pt1 
+  && not (existsRoad g (g.gActive,(pt1,pt2))) 
+  && validRoadLine (pt1,pt2) 
 
 (*Valid IFF colorOption is adjacent to piece and is not the active player*)
 let validRobberMove (g:game) (piece:piece) (colorOption:color option) : bool = 
@@ -507,6 +523,8 @@ let validDiscardMove (g:game) (cost:cost) : bool =
   sum_cost discardingPlayer.gPInventory > cMAX_HAND_SIZE 
   && 
   validCost (minusCosts discardingPlayer.gPInventory cost)
+  &&
+  sum_cost cost = (sum_cost discardingPlayer.gPInventory) / 2
 
 (*Pick the first suitable point and settle there, pick a random adjacent
 point to build a road.*)
@@ -527,10 +545,13 @@ has at least 1 of*)
 let genMinDiscardMove (g:game) : move = 
   let discardingPlayer =  findPlayer g g.gNextColor in
   if sum_cost discardingPlayer.gPInventory <= cMAX_HAND_SIZE
-  then DiscardMove((0,0,0,0,0)) 
-  else let cost = discardHelper discardingPlayer.gPInventory (0,0,0,0,0) 
-                    ((sum_cost discardingPlayer.gPInventory) / 2) in 
-  DiscardMove(cost) 
+  then (print_endline "no discard";
+       DiscardMove((0,0,0,0,0)) )
+  else (let cost = discardHelper discardingPlayer.gPInventory (0,0,0,0,0) 
+                    ((sum_cost discardingPlayer.gPInventory) / 2) in
+  print_string ("discarding: " ^ string_of_cost cost ^ "\n");
+  DiscardMove(cost))
+
 
 
 (* CONS: whether the dice has been rolled *)
@@ -538,12 +559,15 @@ let validRollDice (game:game) : bool = game.gDiceRolled = None
 
 (* CONS: player active the trade has enough that kind of resource*)
 let validMariTrade (game:game) (mtrade:maritimetrade) : bool = 
+  match game.gPendingTrade with 
+    |None -> false 
+    |Some (color,_,_) -> 
   let curPlayer = findPlayer game game.gActive in
   let (sell, buy) = mtrade in
   let ratio = getMariTradeRatio game sell game.gActive in
   let origInv = curPlayer.gPInventory in
   let hasSellAmount = num_resource_in_inventory origInv sell in
-  hasSellAmount >= ratio
+  hasSellAmount >= ratio && game.gActive <> color 
 
 (* CONS trade time doesn't exceed or equal to the max number.
   the both the active player and the trade player has enough resource to give up  *)
@@ -629,7 +653,6 @@ let genMinTradeMove (game:game) : move = TradeResponse(false)
 let genMinActionMove (g:game) : move = 
   if(g.gDiceRolled = None) then Action(RollDice) 
   else Action(EndTurn)
-
 
 let genMinMove (g:game) (request:request) : move = 
   match request with 
