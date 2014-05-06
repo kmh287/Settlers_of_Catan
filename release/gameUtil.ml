@@ -860,8 +860,9 @@ let checkTrophies (g:game) : game =
   (*Find the current length of the longest road*)
   let findCurrentLongestRoad (g:game) : (color*int) = 
     leftFoldPlayerList (fun acc ele -> 
-          (* let roadLength = longest_road ele.gPColor g.gRoadList g.gInterList in *)
-          let roadLength = snd (findMaxLenEnd g ele.gPColor) in
+          let colorRoadList = filterOnRoadList (fun x -> fst(x) = ele.gPColor ) g.gRoadList in 
+          let roadLength = longest_road ele.gPColor colorRoadList g.gInterList in
+          (* let roadLength = snd (findMaxLenEnd g ele.gPColor) in *)
           (* print_endline ("cur color is " ^ (string_of_color ele.gPColor));
           print_string "length is "; print_int roadLength;
           print_endline ""; *)
@@ -886,8 +887,11 @@ let checkTrophies (g:game) : game =
   let lrHolderRoadLength = 
        if lrHolder = None 
        then 0
-       else longest_road ((get_some lrHolder).gPColor)  
-                          g.gRoadList 
+       else let lrColor = ((get_some lrHolder).gPColor)  in 
+
+                          longest_road 
+                          lrColor  
+                          filterOnRoadList (fun x -> fst(x) = lrColor) g.gRoadList 
                           g.gInterList in 
 
 
