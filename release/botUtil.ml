@@ -324,23 +324,17 @@ let findWantedResource (game:game) : resource =
     if(sum_cost cost1 < sum_cost cost2) then cost1
     else cost2
   in
-  let minResInCost (cost:cost) : resource = 
-    let rec find (cost:cost) : resource = 
-      (match cost with
-      | (0, _, _, _, _) -> Brick
-      | (_, 0, _, _, _) -> Wool
-      | (_, _, 0, _, _) -> Ore
-      | (_, _, _, 0, _) -> Grain
-      | (_, _, _, _, 0) -> Lumber
-      | _ -> find (minusCosts cost (1, 1, 1, 1, 1)) )
-    in
-    find cost
+  let maxResInCost (cost:cost) : resource = 
+    let lst = costToPairList cost in
+    fst(List.fold_left (fun (maxRes, max) (res, num) -> 
+      if(num > max) then (res, num) 
+      else (maxRes, max)) (Grain, 0) lst )
   in
   let minCost = 
     if(settleNumber < 4) then minSum deltaTown deltaCity
     else minSum (minSum deltaTown deltaCity) (minSum deltaRoad deltaCard)
   in
-  minResInCost minCost
+  maxResInCost minCost
 
 
 (* genereate actions after cards play phase in a bot *)
