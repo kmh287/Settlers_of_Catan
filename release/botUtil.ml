@@ -173,6 +173,23 @@ let findBestRoadLocation (game:game) : line =
 (******              {Player related helper functions}           ******)
 (**********************************************************************)
 
+(*NOT ENTIRELY ACCURATE, does not accoutn for victory points in players' hands*)
+let checkVictoryPointsBot (g:game) (p:gPlayer) : int = 
+  let color = getPlayerColor p in 
+
+  let vpTowns = sizeOfInterList (filterOnInterList
+                            (fun ele -> ele = Some(color,Town)) g.gInterList) in 
+  let vpCities = sizeOfInterList (filterOnInterList
+                            (fun ele -> ele = Some(color,City)) g.gInterList) in 
+  let vpLargestArmy = if p.gPLargestarmy then 1 else 0 in 
+  let vpLongestroad = if p.gPLongestroad then 1 else 0 in 
+  (cVP_TOWN * vpTowns) +
+  (cVP_CITY * vpCities) + 
+  (cVP_LARGEST_ARMY * vpLargestArmy) + 
+  (cVP_LONGEST_ROAD * vpLongestroad)
+
+
+
 (* assign point on a certain hex.
   Criterion: 1. roll number 2. resource type: number of surrounding players*)
 let assignPointOnHex (game:game) (hIndex:int) : int = 
@@ -202,7 +219,7 @@ let findMostDangerousPlayer (game:game) (players:gPlayer list)
   if((List.length players) = 0) then None
   else 
     fst (leftFoldPlayerList (fun (c, max) player -> 
-      let curVicPoints = checkVictoryPointsPlayer game player in
+      let curVicPoints = checkVictoryPointsBot game player in
       if(curVicPoints > max) 
         then (Some (getPlayerColor player), curVicPoints)
       else (c, max) ) (None, -1) players)
@@ -384,6 +401,11 @@ let generateAction (game:game) : action =
               else generateActionAfterCard game
         else generateActionAfterCard game
     else generateActionAfterCard game
+
+
+
+
+
 
 
 
