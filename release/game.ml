@@ -1,8 +1,8 @@
-open Definition
+(* open Definition
 open Constant
 open Util
 open Print
-include GameUtil
+include GameUtil *)
 
 
 let init_game () = game_of_state (gen_initial_state())

@@ -1,8 +1,8 @@
-open Definition
+(* open Definition
 open Constant
 open Util
 open Print
-include Model 
+include Model  *)
 
 (**********************************************************************)
 (******              {Build related helper functions}            ******)
@@ -68,14 +68,14 @@ let suitableTown (g:game) (town:point) : bool =
   if (res) 
     then 
     begin
-      print_int town;
-      print_endline " is suitable Town";
+      (* print_int town;
+      print_endline " is suitable Town"; *)
       res;
     end
   else 
     begin
-      print_int town;
-      print_endline " is not suitableTown";
+      (* print_int town;
+      print_endline " is not suitableTown"; *)
       res;
     end
     

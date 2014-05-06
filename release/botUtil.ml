@@ -1,10 +1,10 @@
-open Definition
+(* open Definition
 open Constant
 open Util
 open Print
 open Game
 open GameUtil
-open GameType
+open GameType *)
 
 (**********************************************************************)
 (******                {Game related functions}                  ******)
@@ -49,6 +49,17 @@ let hasEnoughResBuild (build:build) (player:gPlayer) : bool =
   | BuildTown _ -> greaterThanEqual inv cCOST_TOWN
   | BuildCity _ -> greaterThanEqual inv cCOST_CITY
   | BuildCard   -> greaterThanEqual inv cCOST_CARD
+
+(* return the delta (only inadqueate ones) of resource needed 
+  to build something *)
+let deltaResourceNeed (player:gPlayer) (wantBuild:build) : cost = 
+  let inv = player.gPInventory in
+  let delta = map_cost2 (fun x y -> if(x < y) then (y - x) else 0) in
+  match wantBuild with
+  | BuildRoad _ -> delta inv cCOST_ROAD
+  | BuildTown _ -> delta inv cCOST_TOWN
+  | BuildCity _ -> delta inv cCOST_CITY
+  | BuildCard   -> delta inv cCOST_CARD  
 
 (* return index list of all suitable town settlements *)
 let allSuitableTowns (game:game) : int list = 
@@ -162,8 +173,6 @@ let findBestRoadLocation (game:game) : line =
 (******              {Player related helper functions}           ******)
 (**********************************************************************)
 
-
-
 (* assign point on a certain hex.
   Criterion: 1. roll number 2. resource type: number of surrounding players*)
 let assignPointOnHex (game:game) (hIndex:int) : int = 
@@ -234,23 +243,116 @@ let hasBoughtCard (game:game) : bool =
   | Hidden num -> num > 0
   | Reveal cList -> (sizeOfCardList cList) > 0
 
+
+
+
+
+(* return the color of a player with the max amount of certain resource.
+  If all player don't have that resource, return None *)
+let findPlayerWithMaxRes (game:game) (res:resource) : color option = 
+  let me = game.gActive in
+  let pList = game.gPlayerList in
+  let res = leftFoldPlayerList (fun (color, max) player -> 
+    let num = num_resource_in_inventory player.gPInventory res in
+    let curColor = getPlayerColor player in
+    if(curColor = me) then (color, max)
+    else if(num > max) then (curColor, num) else (color, max)
+  ) (next_turn me, 0) pList in
+  if(snd res = 0) then None else Some (fst res)
+
+
+(* return whether the player has enough resource for trading.
+  Condition, sum_cost > 4 *)
+let hasEnoughResTrade (game:game) : bool = 
+  let mePlayer = findPlayer game game.gActive in
+  let inv = mePlayer.gPInventory in
+  sum_cost inv >= 4
+
+(* find mine current max resource type *)
+let findMineMaxRes (game:game) : resource = 
+  let me = game.gActive in
+  let mePlayer = findPlayer game me in
+  let myInv = mePlayer.gPInventory in
+  let lst = costToList myInv in
+  fst(List.fold_left (fun (maxRes, max) (res, num) -> 
+    if(num > max) then (res, num) else (maxRes, max)) (Grain, 0) lst )
+
+
+(* generate domestic trade request *)
+(* Strategy: find the resource need most -> see if the maritime 
+  trade ratio is acceptable, if not trade with other player. If 
+  after all domestic trade been made, still have more than max 
+  number of resource can have, trade with maritime trade *)
+
+
+(* find the resource we want to trade for *)
+let findWantedResource (game:game) : resource = 
+  let me = game.gActive in
+  let mePlayer = findPlayer game me in
+  let deltaTown = deltaResourceNeed mePlayer (BuildTown 0) in
+  let deltaRoad = deltaResourceNeed mePlayer (BuildRoad (me, (0,0))) in
+  let deltaCity = deltaResourceNeed mePlayer (BuildCity 0) in
+  let deltaCard = deltaResourceNeed mePlayer BuildCard in
+  let settleNumber = settlementNumber game me in
+  (* return the smaller one of among two costs, smaller means with
+    smaller sum in this case. *)
+  let minSum (cost1:cost) (cost2:cost) : cost = 
+    if(sum_cost cost1 < sum_cost cost2) then cost1
+    else cost2
+  in
+  let minResInCost (cost:cost) : resource = 
+    let rec find (cost:cost) : resource = 
+      (match cost with
+      | (0, _, _, _, _) -> Brick
+      | (_, 0, _, _, _) -> Wool
+      | (_, _, 0, _, _) -> Ore
+      | (_, _, _, 0, _) -> Grain
+      | (_, _, _, _, 0) -> Lumber
+      | _ -> find (minusCosts cost (1, 1, 1, 1, 1)) )
+    in
+    find cost
+  in
+  let minCost = 
+    if(settleNumber < 4) then minSum deltaTown deltaCity
+    else minSum (minSum deltaTown deltaCity) (minSum deltaRoad deltaCard)
+  in
+  minResInCost minCost
+
+
 (* genereate actions after cards play phase in a bot *)
 let generateActionAfterCard (game:game) : action = 
   let me = game.gActive in
+  let mePlayer = findPlayer game me in
   if(is_none game.gDiceRolled) then RollDice
   else 
-    if((hasEnoughResBuild (BuildTown 0) (findPlayer game me) )
+    if((hasEnoughResBuild (BuildTown 0) mePlayer )
         && (settlementNumber game me < 4))
       then 
         let town = findBestTownLocation game in
         BuyBuild (BuildTown(town))
     else
-      if ((hasEnoughResBuild (BuildRoad (me, (0,0))) (findPlayer game me))
-          && ((settlementNumber game me) >= 4) )
-        then 
-          let line = findBestRoadLocation game in
-          BuyBuild (BuildRoad(me, line))
-      else EndTurn
+      let wantedRes = findWantedResource game in
+      let playerWithMax = findPlayerWithMaxRes game wantedRes in
+      (* trade constraints: both me and the player we want to trade
+      has enough resource for sell and buy and the trade turns is less
+      than the max number *)
+      if (playerWithMax != None 
+        && hasEnoughResTrade game 
+        && game.gTradesMade < cNUM_TRADES_PER_TURN)
+          then 
+            let color = get_some playerWithMax in
+            let sell = findMineMaxRes game in
+            DomesticTrade 
+            (color, (single_resource_cost wantedRes), 
+                    (single_resource_cost sell)      ) 
+      else 
+        if ((hasEnoughResBuild (BuildRoad (me, (0,0))) (findPlayer game me))
+            && ((settlementNumber game me) >= 4) )
+          then 
+            let line = findBestRoadLocation game in
+            BuyBuild (BuildRoad(me, line))
+        else EndTurn
+
 
 (* generate appropriate actions *)
 (* => if there is a robber affect myself 
@@ -260,7 +362,8 @@ let generateActionAfterCard (game:game) : action =
       use it according to the card type.(In this case, only buy
       one time no matter what card we get.)
   => if the dice haven't been rolled, roll the dice
-  => try some trade
+  => try some trade, if resource exceed max, after trade is no longer 
+      available, try maritime trade.
   => build town ==> build city/road according to 
       some currently unkonw reasons.(Need to figure this out)
   => end turn after all have been done

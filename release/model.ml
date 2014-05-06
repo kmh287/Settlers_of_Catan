@@ -1,8 +1,8 @@
-open Definition
+(* open Definition
 open Constant
 open Util
 open Print
-include GameType
+include GameType *)
 
 
 (**********************************************************************)
@@ -491,6 +491,10 @@ let lessThanEqual (cost1:cost) (cost2:cost) : bool =
   let (bi,wi,oi,li,gi) = cost1 and (b,w,o,l,g) = cost2 in 
   bi <= b && wi <= w && oi <=o && li <= l && gi <= g 
 
+(* convert a cost to a list contains both resource type and amount *)
+let costToList (cost:cost) : (resource * int) list = 
+    let (b,w,o,g,l) = cost in
+    [(Brick, b); (Wool, w);(Ore, o); (Grain, g); (Lumber, l)]
 
 (**********************************************************************)
 (******                {Player Model functions}                  ******)
