@@ -267,6 +267,7 @@ let hasBoughtCard (game:game) : bool =
 (* return the color of a player with the max amount of certain resource.
   If all player don't have that resource, return None *)
 let findPlayerWithMaxRes (game:game) (res:resource) : color option = 
+  print_endline ("wanted resource is " ^ (string_of_resource res));
   let me = game.gActive in
   let pList = game.gPlayerList in
   let res = leftFoldPlayerList (fun (color, max) player -> 
@@ -275,7 +276,10 @@ let findPlayerWithMaxRes (game:game) (res:resource) : color option =
     if(curColor = me) then (color, max)
     else if(num > max) then (curColor, num) else (color, max)
   ) (next_turn me, 0) pList in
-  if(snd res = 0) then None else Some (fst res)
+  if(snd res = 0) then None 
+  else 
+    (print_endline ("player with max is " ^ string_of_color (fst res));
+    Some (fst res))
 
 
 (* return whether the player has enough resource for trading.
@@ -363,8 +367,8 @@ let generateActionAfterCard (game:game) : action =
             let color = get_some playerWithMax in
             let sell = findMineMaxResNotWanted game wantedRes in
             DomesticTrade 
-            (color, (single_resource_cost wantedRes), 
-                    (single_resource_cost sell)      ) 
+            (color, (single_resource_cost sell), 
+                    (single_resource_cost wantedRes)      ) 
       else 
         if ((hasEnoughResBuild (BuildRoad (me, (0,0))) (findPlayer game me))
             && ((settlementNumber game me) >= 4) )
