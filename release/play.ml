@@ -53,7 +53,7 @@ let play_game (module B : BOT) (module R : BOT) (module O : BOT) (module W : BOT
     let (winner, game) = Game.handle_move game move in
     let s = Game.state_of_game game in
     print_endline (print_move s c move);
-    (print_code_of_state s);
+    (* (print_code_of_state s); *)
     let (_,_,turn,_) = s in
     let turns = if t.active <> turn.active && r <> InitialRequest then turns+1 else turns in
     sleep s cSTEP_TIME;
