@@ -273,7 +273,7 @@ let findMineMaxRes (game:game) : resource =
   let me = game.gActive in
   let mePlayer = findPlayer game me in
   let myInv = mePlayer.gPInventory in
-  let lst = costToList myInv in
+  let lst = costToPairList myInv in
   fst(List.fold_left (fun (maxRes, max) (res, num) -> 
     if(num > max) then (res, num) else (maxRes, max)) (Grain, 0) lst )
 

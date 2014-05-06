@@ -428,6 +428,10 @@ let validCost ((b,w,o,g,l):cost) : bool =
 let costToList ((b,w,o,g,l):cost) : int list = 
   [b;w;o;g;l]
 
+(* convert a cost to a list contains both resource type and amount *)
+let costToPairList (cost:cost) : (resource * int) list = 
+    let (b,w,o,g,l) = cost in
+    [(Brick, b); (Wool, w);(Ore, o); (Grain, g); (Lumber, l)]
 
 (*Return the first resource in this cost that is greater than zero. None if 
 all are 0*) 
@@ -491,10 +495,7 @@ let lessThanEqual (cost1:cost) (cost2:cost) : bool =
   let (bi,wi,oi,li,gi) = cost1 and (b,w,o,l,g) = cost2 in 
   bi <= b && wi <= w && oi <=o && li <= l && gi <= g 
 
-(* convert a cost to a list contains both resource type and amount *)
-let costToList (cost:cost) : (resource * int) list = 
-    let (b,w,o,g,l) = cost in
-    [(Brick, b); (Wool, w);(Ore, o); (Grain, g); (Lumber, l)]
+
 
 (**********************************************************************)
 (******                {Player Model functions}                  ******)
