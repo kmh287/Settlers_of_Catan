@@ -16,9 +16,11 @@ let all_adjacent_curColor_road (g:game) (pt:point) : road list =
 (* helper function used to check whether a road already exists *)
 let existsRoad (g:game) (road:road) : bool = 
   let (c, (p1, p2)) = road in
-  let revRoad = (c, (p2, p1)) in
-  let res = (memRoadList road g.gRoadList) 
-    || (memRoadList revRoad g.gRoadList) in
+  let line = (p1, p2) in
+  let revLine = (p2, p1) in
+  let lineList = mapRoadList (fun (c, line) -> line) g.gRoadList in
+  let res = (List.mem line lineList) 
+    || (List.mem revLine lineList) in
   if (res) 
     then 
     begin
@@ -105,10 +107,12 @@ let settleablePoint (g:game) : point=
         (List.map (fun ele -> suitableSettlementPoint g ele) intersectionIndices) 
 
 (*Function to return an unoccupied line with one end at pt *)
-let buildableRoad (g:game) (pt:point) : line = 
+let buildableRoad (g:game) (pt:point) : line option = 
     let occupiedLines = mapRoadList(fun (color,line) -> line) g.gRoadList in 
     let possibleRoads = mapLineList (fun ele -> (pt,ele) ) (adjacent_points pt) in
-    findRoadList (fun ele -> (not) (memRoadList ele occupiedLines)) possibleRoads
+    let res = filterOnRoadList 
+      (fun ele -> (not) (memRoadList ele occupiedLines)) possibleRoads in
+    if(List.length res = 0) then None else Some (List.hd res)
 
 (**********************************************************************)
 (******              {initial_move helper functions}             ******)
@@ -408,11 +412,12 @@ let buildCard (game:game) : game =
       if(checkCardListNull cList) then game
       else
         let (draw, remain) = pick_one cList in
-        (* let curPlayer = findPlayer game game.gActive in
+        let curPlayer = findPlayer game game.gActive in
         let updatedPlayer = 
-          {curPlayer with gPCard = (addToCard draw curPlayer.gPCard)} in
-        let updatedPGame = updatePlayer game updatedPlayer in *)
-        {game with
+          {curPlayer with 
+            gPInventory = minusCosts curPlayer.gPInventory cCOST_CARD;} in
+        let updatedPGame = updatePlayer game updatedPlayer in
+        {updatedPGame with
           gDeck = Reveal remain;
           gCardsBought = addToCard draw game.gCardsBought;
         }  
@@ -725,6 +730,103 @@ let scrubMove (game:game) (move:move) : move =
 (******                         TROPHIES                         ******)
 (**********************************************************************)
 
+(* return the max length from current point and the end point that
+  has the max length *)
+let maxLengthAndEnd (game:game) (me:color) (point:point)  : (point*int) = 
+  (* make line always in asending order *)
+  
+  let ascendingLine (p1, p2) = 
+    if(p1 < p2) then (p1, p2) else (p2, p1)
+  in
+  (* make road always in ascending order *)
+  let ascendRoadList = mapRoadList 
+    (fun (c, line) -> (c, ascendingLine line)) game.gRoadList in
+
+  (* print_endline "ascendRoadList";
+    print_endline (string_of_list 
+      (fun (c, (p1, p2)) -> 
+        (string_of_color c) ^ (string_of_int p1) ^ (string_of_int p2))
+    ascendRoadList); *)
+
+
+
+  let rec maxAndEnd (roadList:road list) (cur:point) (me:color)
+          (prev:line list) (length:int) : (point*int) = 
+    (* print_string ("max function color is " ^ (string_of_color me));
+    print_endline "";
+    print_string "max function cur is "; print_int cur;
+    print_endline "";
+    print_endline "prev";
+    print_endline (string_of_list 
+      (fun (p1, p2) -> (string_of_int p1) ^ (string_of_int p2))
+    prev); *)
+    let possibleRoadsFromCur = 
+      List.map (fun p -> ascendingLine(cur, p)) (adjacent_points cur)
+    in
+    (* print_endline "possibleRoadsFromCur";
+    print_endline (string_of_list 
+      (fun (p1, p2) -> (string_of_int p1) ^ (string_of_int p2))
+    possibleRoadsFromCur); *)
+    (* return all mine road from current point *)
+    let mineRoadFromCur = List.filter 
+      (fun line -> List.mem (me, line) roadList) possibleRoadsFromCur 
+    in
+    (* print_endline "mineRoadFromCur";
+    print_endline (string_of_list 
+      (fun (p1, p2) -> (string_of_int p1) ^ (string_of_int p2))
+    mineRoadFromCur); *)
+    let mineRoadWithoutDup = List.filter
+      (fun line -> not (List.mem line prev)) mineRoadFromCur 
+    in
+    (* print_endline "mineRoadWithoutDup";
+    print_endline (string_of_list 
+      (fun (p1, p2) -> (string_of_int p1) ^ (string_of_int p2))
+    mineRoadWithoutDup); *)
+    if(List.length mineRoadWithoutDup = 0) then (cur, length)
+    else 
+      let tempRes = List.map (fun line -> 
+        let (p1, p2) = line in
+        if(p1 = cur) 
+          then maxAndEnd roadList p2 me (line::prev) (length+1)
+        else maxAndEnd roadList p1 me (line::prev) (length+1))
+      mineRoadWithoutDup
+      in
+      List.fold_left (fun (maxP, maxLen) (p, length) -> 
+        (* print_string "maxP "; print_int maxP;
+        print_endline "";
+        print_string "maxLen"; print_int maxLen;
+        print_endline "";
+        print_string "p "; print_int p;
+        print_endline "";
+        print_string "length"; print_int length;
+        print_endline ""; *)
+        if(length > maxLen) then (p, length) else (maxP, maxLen)
+      ) (0, -1) tempRes
+  in
+  maxAndEnd ascendRoadList point me [] 0
+
+(* return the max length of a  *)
+let findMaxLenEnd (game:game) (me:color) : (point*int) = 
+  let mineInter = snd (leftFoldInterList (fun (index, acc) inter -> 
+    match inter with
+    | None -> (index+1, acc)
+    | Some (c, _) -> 
+      if(c = me) then (index+1, index::acc) else (index+1, acc)
+  ) (0, []) game.gInterList) in
+  let maxEndList = List.map (maxLengthAndEnd game me) mineInter in
+  let tempRes = List.fold_left 
+    (fun (maxP, maxLen) (p, length) -> 
+        if(length > maxLen && (buildableRoad game p != None)) 
+          then (p, length) else (maxP, maxLen)
+    ) (0, -1) maxEndList
+  in
+  print_endline ("cur color is " ^ (string_of_color me));
+  print_string "length is "; print_int (snd tempRes);
+  print_string "  end is "; print_int (fst tempRes);
+  print_endline "";
+  tempRes
+
+
 let checkTrophies (g:game) : game = 
 
   (*Find the current holder of the largest army trophy*)
@@ -745,15 +847,19 @@ let checkTrophies (g:game) : game =
   let findCurrentMaxKnights (g:game) : (color*int) = 
     leftFoldPlayerList (fun acc ele -> 
           if ele.gPKnights > snd(acc) 
-          then ele.gPColor,ele.gPKnights 
+          then (ele.gPColor,ele.gPKnights) 
           else acc) (Blue ,0) g.gPlayerList in 
 
   (*Find the current length of the longest road*)
   let findCurrentLongestRoad (g:game) : (color*int) = 
     leftFoldPlayerList (fun acc ele -> 
-          let roadLength = longest_road ele.gPColor g.gRoadList g.gInterList in
+          (* let roadLength = longest_road ele.gPColor g.gRoadList g.gInterList in *)
+          let roadLength = snd (findMaxLenEnd g ele.gPColor) in
+          print_endline ("cur color is " ^ (string_of_color ele.gPColor));
+          print_string "length is "; print_int roadLength;
+          print_endline "";
           if  roadLength > snd(acc) 
-          then ele.gPColor,roadLength 
+            then (ele.gPColor,roadLength)
           else acc) (Blue ,0) g.gPlayerList in 
 
   let laHolder = findCurrentLAtrophy g in 
@@ -790,16 +896,17 @@ let checkTrophies (g:game) : game =
               (*Fold over player list. Swap trophies*)     
               leftFoldPlayerList (fun acc ele -> 
               if ele.gPColor = fst(largestArmyTuple)
-              then {ele with gPLargestarmy = true;}::acc
+                then {ele with gPLargestarmy = true;}::acc
               else 
-              if ele.gPColor = (get_some laHolder).gPColor 
-              then {ele with gPLargestarmy = false;}::acc
-              else ele::acc) [] g.gPlayerList in 
+                if (laHolder = None || 
+                    ele.gPColor = (get_some laHolder).gPColor)
+                  then {ele with gPLargestarmy = false;}::acc
+                else ele::acc) [] g.gPlayerList in 
               {g with gPlayerList = adjustedPlayerList;} in 
 
   (*SECOND, update longest road*) 
   let finalGame = 
-      (*Only need to check the largest army against the constnat.*)
+      (*Only need to check the longest road against the constnat.*)
       if (snd(longestRoadTuple) < cMIN_LONGEST_ROAD
           ||
          snd(longestRoadTuple) <= lrHolderRoadLength) 
@@ -809,11 +916,12 @@ let checkTrophies (g:game) : game =
               (*Fold over player list. Swap trophies*)     
               leftFoldPlayerList (fun acc ele -> 
               if ele.gPColor = fst(longestRoadTuple)
-              then {ele with gPLongestroad = true;}::acc
+                then {ele with gPLongestroad = true;}::acc
               else 
-              if ele.gPColor = (get_some lrHolder).gPColor 
-              then {ele with gPLongestroad = false;}::acc
-              else ele::acc) [] intermediateGame.gPlayerList in 
+                if (lrHolder = None || 
+                    ele.gPColor = (get_some lrHolder).gPColor )
+                  then {ele with gPLongestroad = false;}::acc
+                else ele::acc) [] intermediateGame.gPlayerList in 
               {intermediateGame with gPlayerList = adjustedPlayerList;} in 
   finalGame 
               

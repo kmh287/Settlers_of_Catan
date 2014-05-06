@@ -164,10 +164,16 @@ let findBestTownLocation (game:game) : int =
   let res = fst(assignIntersPoints game allSuitable) in
   print_int res; print_endline " as best"; res
 
+
 (* return the best place for building a road *)
 let findBestRoadLocation (game:game) : line = 
-  failwith "unimplemented findBestRoadLocation"
-
+  let tempRes = findMaxLenEnd game game.gActive in
+  print_string "road end point is "; print_int (fst tempRes);
+  print_endline "";
+  print_string "current max length is  "; print_int (snd tempRes); 
+  print_endline "";
+  get_some (buildableRoad game (fst tempRes))
+ 
 
 (**********************************************************************)
 (******              {Player related helper functions}           ******)
@@ -309,7 +315,6 @@ let findMineMaxResNotWanted (game:game) (wanted:resource) : (resource*int) =
       if(num > max) then (res, num) 
       else (maxRes, max)) (Grain, 0) lst )
 
-
 (* return wether has enough resource for maritime trade.
   Max resource in hand beside wanted resource exceed trade ratio+1*)
 let hasEnoughResMariTrade (game:game) (wanted:resource) :bool = 
@@ -329,13 +334,13 @@ let hasEnoughResMariTrade (game:game) (wanted:resource) :bool =
 
 
 (* find the resource we want to trade for *)
-let findWantedResource (game:game) : resource = 
+let findWantedResource (game:game) : resource option = 
   let me = game.gActive in
   let mePlayer = findPlayer game me in
   let deltaTown = deltaResourceNeed mePlayer (BuildTown 0) in
   let deltaRoad = deltaResourceNeed mePlayer (BuildRoad (me, (0,0))) in
   let deltaCity = deltaResourceNeed mePlayer (BuildCity 0) in
-  let deltaCard = deltaResourceNeed mePlayer BuildCard in
+  (* let deltaCard = deltaResourceNeed mePlayer BuildCard in *)
   let settleNumber = settlementNumber game me in
   (* return the smaller one of among two costs, smaller means with
     smaller sum in this case. *)
@@ -343,17 +348,38 @@ let findWantedResource (game:game) : resource =
     if(sum_cost cost1 < sum_cost cost2) then cost1
     else cost2
   in
-  let maxResInCost (cost:cost) : resource = 
+  let maxResInCost (cost:cost) : resource option = 
     let lst = costToPairList cost in
-    fst(List.fold_left (fun (maxRes, max) (res, num) -> 
+    let tempRes = (List.fold_left (fun (maxRes, max) (res, num) -> 
       if(num > max) then (res, num) 
-      else (maxRes, max)) (Grain, 0) lst )
+      else (maxRes, max)) (Grain, 0) lst ) in
+    if(snd tempRes = 0) then None else Some (fst tempRes)
   in
   let minCost = 
     if(settleNumber < 4) then deltaTown
-    else minSum (minSum deltaTown deltaCity) (minSum deltaRoad deltaCard)
+    (* else minSum (minSum deltaTown deltaCity) (minSum deltaRoad deltaCard) *)
+  else minSum (minSum deltaTown deltaCity) deltaRoad 
   in
+  print_endline ("wanted delta cost" ^ (string_of_cost minCost));
   maxResInCost minCost
+
+
+
+(* return Some availabe town or None *)
+let availableTown (game:game) (me:color) : point option = 
+  let mineTowns = snd (leftFoldInterList (fun (index, acc) inter -> 
+    (match inter with
+    | None -> (index+1, acc)
+    | Some (c, settlement) -> 
+      if(c = me && settlement = Town) then (index+1, index::acc)
+      else (index+1, acc))
+  ) (0, []) game.gInterList)
+  in
+  if List.length mineTowns = 0 then None
+  else 
+    let tempRes = assignIntersPoints game mineTowns in
+    Some (fst tempRes)
+
 
 
 (* genereate actions after cards play phase in a bot *)
@@ -369,26 +395,38 @@ let generateActionAfterCard (game:game) : action =
         BuyBuild (BuildTown(town))
     else
       let wantedRes = findWantedResource game in
-      let playerWithMax = findPlayerWithMaxRes game wantedRes in
+      let playerWithMax = 
+        if (wantedRes != None) 
+          then findPlayerWithMaxRes game (get_some wantedRes)
+        else None in
       (* trade constraints: both me and the player we want to trade
       has enough resource for sell and buy and the trade turns is less
       than the max number *)
-      if (playerWithMax != None 
+      if (wantedRes != None
+        && playerWithMax != None 
         && hasEnoughResTrade game 
         && game.gTradesMade < cNUM_TRADES_PER_TURN)
           then 
             let color = get_some playerWithMax in
-            let sell = fst (findMineMaxResNotWanted game wantedRes) in
+            let sell = 
+              fst (findMineMaxResNotWanted game (get_some wantedRes)) in
             DomesticTrade 
             (color, (single_resource_cost sell), 
-                    (single_resource_cost wantedRes)      ) 
+              (single_resource_cost (get_some wantedRes)) ) 
       else 
-        if ((hasEnoughResBuild (BuildRoad (me, (0,0))) (findPlayer game me))
-            && ((settlementNumber game me) >= 4) )
+        let line = findBestRoadLocation game in
+        if ((hasEnoughResBuild (BuildRoad (me, (0,0))) mePlayer)
+          && ((settlementNumber game me) >= 4) 
+          && suitableRoad game (me, line))
           then 
-            let line = findBestRoadLocation game in
             BuyBuild (BuildRoad(me, line))
-        else EndTurn
+        else 
+          let city = availableTown game me in
+          if ((hasEnoughResBuild (BuildCity 0) mePlayer)
+              && (city != None))
+            then BuyBuild (BuildCity(get_some city))
+          else 
+          EndTurn
 
 
 (* generate appropriate actions *)
