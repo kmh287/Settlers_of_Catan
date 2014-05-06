@@ -286,13 +286,16 @@ let hasEnoughResTrade (game:game) : bool =
   sum_cost inv >= 4
 
 (* find mine current max resource type *)
-let findMineMaxRes (game:game) : resource = 
+let findMineMaxResNotWanted (game:game) (wanted:resource) : resource = 
   let me = game.gActive in
   let mePlayer = findPlayer game me in
   let myInv = mePlayer.gPInventory in
   let lst = costToPairList myInv in
   fst(List.fold_left (fun (maxRes, max) (res, num) -> 
-    if(num > max) then (res, num) else (maxRes, max)) (Grain, 0) lst )
+    if(res = wanted) then (maxRes, max)
+    else 
+      if(num > max) then (res, num) 
+      else (maxRes, max)) (Grain, 0) lst )
 
 
 (* generate domestic trade request *)
@@ -358,7 +361,7 @@ let generateActionAfterCard (game:game) : action =
         && game.gTradesMade < cNUM_TRADES_PER_TURN)
           then 
             let color = get_some playerWithMax in
-            let sell = findMineMaxRes game in
+            let sell = findMineMaxResNotWanted game wantedRes in
             DomesticTrade 
             (color, (single_resource_cost wantedRes), 
                     (single_resource_cost sell)      ) 
